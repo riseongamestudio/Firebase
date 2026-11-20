@@ -1,0 +1,26 @@
+{
+    "name": "RiseOn.Firebase.Editor",
+    "rootNamespace": "RiseOn.Firebase.Editor",
+    "references": [
+        "RiseOn.Firebase",
+        "UniTask",
+        "RiseOn.Utils.Editor"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.google.firebase.app-check",
+            "expression": "0.0.1",
+            "define": "RISEON_FIREBASE_APP_CHECK"
+        }
+    ],
+    "noEngineReferences": false
+}
