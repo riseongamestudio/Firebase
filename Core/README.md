@@ -19,47 +19,63 @@ rõ không dùng để phát hành. Build cho nền tảng khác bị dừng.
 - [Cài đặt của project](#cài-đặt-của-project)
 - [App Check](#app-check)
 - [Truy cập console](#truy-cập-console)
+- [Lịch sử thay đổi](#lịch-sử-thay-đổi)
 - [Giấy phép](#giấy-phép)
 
 ## Yêu cầu
 
 | Phụ thuộc | Cách có | Dùng cho |
 |---|---|---|
-| Unity 6000.0 | | |
-| `com.google.firebase.app` 13.17.0 | Registry RiseOn, tự cài theo `package.json` | Firebase SDK |
-| `com.cysharp.unitask` | OpenUPM, tự cài theo `package.json` | Các hàm `async` |
-| `com.riseon.utils` | Registry RiseOn, tự cài theo `package.json` | Các mục của trang cài đặt |
-| Odin Inspector | Cài tay từ Asset Store | `com.riseon.utils` cần nó |
+| Unity 6000.3 | | Bản đang dùng để phát triển |
+| [Odin Inspector](https://odininspector.com) | Cài tay từ Asset Store | Các mục của trang cài đặt |
+| `com.google.firebase.app` 13.17.0 | Tự cài theo `package.json`, từ registry RiseOn | Firebase SDK |
+| `com.riseon.utils` 1.0.18 | Tự cài theo `package.json` | Các mục của trang cài đặt |
+| `com.cysharp.unitask` 2.5.11 | Tự cài theo `package.json`, từ OpenUPM | Các hàm `async` |
 | `com.google.firebase.app-check` | Registry RiseOn, cài khi dùng App Check (trang cài đặt có nút cài) | [App Check](#app-check) |
 | `google-services.json`, `GoogleService-Info.plist` | Firebase console, Project settings > Your apps; đặt ở bất kỳ đâu trong `Assets` | Firebase biết project nào |
 | [Firebase CLI](https://firebase.google.com/docs/cli) | `npm install -g firebase-tools` | Chỉ khi [truy cập console](#truy-cập-console) qua tài khoản Google |
 
+"Tự cài" là Package Manager tự lấy theo version từ Unity Registry và các registry khai
+trong manifest, cả khi cài pack bằng git URL. Odin không có trên UPM nên phải cài vào
+project trước. Thiếu Odin thì project báo một lỗi từ `RiseOn.Firebase.Requirements`.
+
 ## Cài đặt
 
-Thêm scoped registry vào `Packages/manifest.json`. Mục nào project đã có thì bỏ
-qua; registry nào khai scope cụ thể hơn được ưu tiên, nên các gói
-`com.google.firebase` lấy từ registry RiseOn dù OpenUPM khai `com.google`.
+**Registry RiseOn** (khuyên dùng): thêm registry RiseOn với scope `com.riseon`,
+`com.google.firebase`, và OpenUPM với scope `com.cysharp`, `com.google`, vào
+`Packages/manifest.json`, rồi thêm package. Mục nào project đã có thì bỏ qua;
+registry nào khai scope cụ thể hơn được ưu tiên, nên các gói `com.google.firebase`
+lấy từ registry RiseOn dù OpenUPM khai `com.google`.
 
 ```json
-"scopedRegistries": [
-  {
-    "name": "RiseOn",
-    "url": "https://upm.riseongamestudio.com",
-    "scopes": [ "com.riseon", "com.google.firebase" ]
-  },
-  {
-    "name": "OpenUPM",
-    "url": "https://package.openupm.com",
-    "scopes": [ "com.cysharp", "com.google" ]
+{
+  "scopedRegistries": [
+    {
+      "name": "RiseOn",
+      "url": "https://upm.riseongamestudio.com",
+      "scopes": ["com.riseon", "com.google.firebase"]
+    },
+    {
+      "name": "OpenUPM",
+      "url": "https://package.openupm.com",
+      "scopes": ["com.cysharp", "com.google"]
+    }
+  ],
+  "dependencies": {
+    "com.riseon.firebase": "1.0.2"
   }
-]
+}
 ```
 
-rồi thêm gói vào `dependencies`:
+**Git URL**: phụ thuộc vẫn lấy theo version từ registry, nên manifest cần đủ các
+registry như ví dụ trên, vì SDK Firebase chỉ có trên registry RiseOn. Rồi
+*Package Manager → + → Add package from git URL*:
 
-```json
-"com.riseon.firebase": "1.0.1"
 ```
+https://github.com/riseongamestudio/Firebase.git?path=/Core
+```
+
+**Thư mục local**: `"com.riseon.firebase": "file:D:/path/to/Firebase/Core"`.
 
 ## Luồng
 
@@ -113,14 +129,15 @@ while (result is FirebaseInitFailed failed) {
 Mỗi `FirebaseInitFailed` chỉ thử lại được một lần. Game không lấy kết quả ra
 thì mọi thứ dùng Firebase chờ mãi, lỗi chỉ hiện trong log.
 
-Google Play services chỉ làm hỏng bước này khi game có module Firebase cần nó: với app, Remote Config và App Check, một máy Android không có Google Play
-services (emulator AOSP Android 15) vẫn ra `Available` và fetch được Remote Config.
-Bảng module nào cần Google Play services nằm ở trang
-[Dependencies of Firebase Android SDKs on Google Play services](https://firebase.google.com/docs/android/android-play-services).
-Lỗi lặp lại ở mọi lần thử mà máy có Google Play services thì là lỗi của game (file
-cấu hình, module Firebase): xem log `FirebaseInit` và `FirebaseInitFailed.Error`.
-Máy không có Google Play services mà game dùng module cần nó thì game dừng ở màn boot
-trên máy đó; game phải chạy được trên những máy như vậy thì chọn module theo bảng ở trang Firebase nói trên.
+Google Play services chỉ làm hỏng bước này khi game có module Firebase cần nó: với app,
+Remote Config và App Check, một máy Android không có Google Play services (emulator AOSP
+Android 15) vẫn ra `Available` và fetch được Remote Config. Bảng module nào cần Google
+Play services nằm ở trang [Dependencies of Firebase Android SDKs on Google Play
+services](https://firebase.google.com/docs/android/android-play-services). Lỗi lặp lại ở
+mọi lần thử mà máy có Google Play services thì là lỗi của game (file cấu hình, module
+Firebase): xem log `FirebaseInit` và `FirebaseInitFailed.Error`. Máy không có Google
+Play services mà game dùng module cần nó thì game dừng ở màn boot trên máy đó; game phải
+chạy được trên những máy như vậy thì chọn module theo bảng ở trang Firebase nói trên.
 
 ## Cài đặt của project
 
@@ -194,6 +211,10 @@ không vào git:
 
 File key của service account thuộc project khác project trong file cấu hình thì
 trang cảnh báo.
+
+## Lịch sử thay đổi
+
+Xem [CHANGELOG.md](CHANGELOG.md).
 
 ## Giấy phép
 

@@ -5,7 +5,7 @@
     /// </summary>
     public static partial class RemoteKeys { }
 
-    public static class RemoteKeyExt {
+    public static class RemoteKeyUtils {
         /// <summary>The value of a key chosen in the Inspector; throws when it is not a <typeparamref name="T"/>.</summary>
         public static RemoteValue<T> Get<T>(this RemoteKey key) => RemoteValues.Get<T>((int)key);
     }

@@ -5,8 +5,7 @@ mặc định trong app. Pack sinh một enum và một class có property đún
 từng key, tự fetch khi mở game sau `com.riseon.firebase`, và kéo, đẩy tham số
 với Firebase console ngay trong Editor.
 
-Package `com.riseon.firebase.remoteconfig`, namespace
-`RiseOn.Firebase.RemoteConfig`.
+Package `com.riseon.firebase.remoteconfig`, namespace `RiseOn.Firebase.RemoteConfig`.
 
 ## Mục lục
 
@@ -20,46 +19,64 @@ Package `com.riseon.firebase.remoteconfig`, namespace
 - [Tham số live](#tham-số-live)
 - [Fetch](#fetch)
 - [Kéo và đẩy với Firebase console](#kéo-và-đẩy-với-firebase-console)
+- [Lịch sử thay đổi](#lịch-sử-thay-đổi)
 - [Giấy phép](#giấy-phép)
 
 ## Yêu cầu
 
 | Phụ thuộc | Cách có | Dùng cho |
 |---|---|---|
-| Unity 6000.0 | | |
-| `com.riseon.firebase` | Registry RiseOn, tự cài theo `package.json` | Khởi động Firebase, project trong file cấu hình |
-| `com.google.firebase.remote-config` 13.17.0 | Registry RiseOn, tự cài theo `package.json` | Firebase Remote Config SDK |
-| `com.cysharp.unitask` | OpenUPM, tự cài theo `package.json` | Các hàm `async` |
-| `com.riseon.utils` | Registry RiseOn, tự cài theo `package.json` | Các mục của trang cài đặt |
-| Odin Inspector | Cài tay từ Asset Store | `com.riseon.utils` cần nó |
+| Unity 6000.3 | | Bản đang dùng để phát triển |
+| [Odin Inspector](https://odininspector.com) | Cài tay từ Asset Store | Các mục của trang cài đặt |
+| `com.riseon.firebase` 1.0.2 | Tự cài theo `package.json` | Khởi động Firebase, project trong file cấu hình |
+| `com.riseon.utils` 1.0.18 | Tự cài theo `package.json` | Các mục của trang cài đặt |
+| `com.google.firebase.remote-config` 13.17.0 | Tự cài theo `package.json`, từ registry RiseOn | Firebase Remote Config SDK |
+| `com.cysharp.unitask` 2.5.11 | Tự cài theo `package.json`, từ OpenUPM | Các hàm `async` |
 | [Firebase CLI](https://firebase.google.com/docs/cli) | `npm install -g firebase-tools` | Chỉ khi [kéo và đẩy](#kéo-và-đẩy-với-firebase-console) qua tài khoản Google |
+
+"Tự cài" là Package Manager tự lấy theo version từ Unity Registry và các registry khai
+trong manifest, cả khi cài pack bằng git URL. Odin không có trên UPM nên phải cài vào
+project trước. Thiếu Odin thì project báo một lỗi từ
+`RiseOn.Firebase.RemoteConfig.Requirements`.
 
 ## Cài đặt
 
-Thêm scoped registry vào `Packages/manifest.json`. Mục nào project đã có thì bỏ
-qua; registry nào khai scope cụ thể hơn được ưu tiên, nên các gói
-`com.google.firebase` lấy từ registry RiseOn dù OpenUPM khai `com.google`.
+**Registry RiseOn** (khuyên dùng): thêm registry RiseOn với scope `com.riseon`,
+`com.google.firebase`, và OpenUPM với scope `com.cysharp`, `com.google`, vào
+`Packages/manifest.json`, rồi thêm package. Mục nào project đã có thì bỏ qua;
+registry nào khai scope cụ thể hơn được ưu tiên, nên các gói `com.google.firebase`
+lấy từ registry RiseOn dù OpenUPM khai `com.google`.
 
 ```json
-"scopedRegistries": [
-  {
-    "name": "RiseOn",
-    "url": "https://upm.riseongamestudio.com",
-    "scopes": [ "com.riseon", "com.google.firebase" ]
-  },
-  {
-    "name": "OpenUPM",
-    "url": "https://package.openupm.com",
-    "scopes": [ "com.cysharp", "com.google" ]
+{
+  "scopedRegistries": [
+    {
+      "name": "RiseOn",
+      "url": "https://upm.riseongamestudio.com",
+      "scopes": ["com.riseon", "com.google.firebase"]
+    },
+    {
+      "name": "OpenUPM",
+      "url": "https://package.openupm.com",
+      "scopes": ["com.cysharp", "com.google"]
+    }
+  ],
+  "dependencies": {
+    "com.riseon.firebase.remoteconfig": "2.0.0"
   }
-]
+}
 ```
 
-rồi thêm gói vào `dependencies`:
+**Git URL**: phụ thuộc vẫn lấy theo version từ registry, nên manifest cần đủ các
+registry như ví dụ trên, vì SDK Firebase chỉ có trên registry RiseOn. Rồi
+*Package Manager → + → Add package from git URL*:
 
-```json
-"com.riseon.firebase.remoteconfig": "1.0.1"
 ```
+https://github.com/riseongamestudio/Firebase.git?path=/RemoteConfig
+```
+
+**Thư mục local**:
+`"com.riseon.firebase.remoteconfig": "file:D:/path/to/Firebase/RemoteConfig"`.
 
 ## Khai báo tham số
 
@@ -136,11 +153,11 @@ namespace RiseOn.Firebase.RemoteConfig {
 ```
 
 Tên trong code là key viết y nguyên: `interstitial_every_seconds` là
-`RemoteKeys.interstitial_every_seconds`; key trùng từ khoá C# thì thêm `@` (`RemoteKeys.@class`).
-`RemoteKeys` không có member nào khác, nên key nào console nhận cũng có tên trong code, trừ
-`value__` và `RemoteKeys` (xem bảng lỗi ở trên).
-Mỗi key mang một số ngẫu nhiên cố định, nên field enum đã lưu trong scene, prefab vẫn
-trỏ đúng key khi key khác đổi tên hay bị xóa; giá trị của field đó đọc bằng `key.Get<T>()`.
+`RemoteKeys.interstitial_every_seconds`; key trùng từ khóa C# thì thêm `@`
+(`RemoteKeys.@class`). `RemoteKeys` không có member nào khác, nên key nào console nhận
+cũng có tên trong code, trừ `value__` và `RemoteKeys` (xem bảng lỗi ở trên). Mỗi key
+mang một số ngẫu nhiên cố định, nên field enum đã lưu trong scene, prefab vẫn trỏ đúng
+key khi key khác đổi tên hay bị xóa; giá trị của field đó đọc bằng `key.Get<T>()`.
 
 | Kiểu | Kiểu C# | Kiểu trên console |
 |---|---|---|
@@ -249,11 +266,11 @@ minimum fetch interval.
 
 ## Kéo và đẩy với Firebase console
 
-Pull và Push vào project trong file cấu hình của `com.riseon.firebase`, theo cách
-truy cập chọn ở trang Firebase (xem [Truy cập console](../Core/README.md#truy-cập-console)).
-Chưa có project (thiếu file cấu hình, hoặc hai file trỏ hai project khác nhau) hoặc
-chưa truy cập được thì đầu trang Remote Config có hộp cảnh báo nói lý do; nút
-**Open Firebase** trong hộp mở trang Firebase để sửa.
+Pull và Push vào project trong file cấu hình của `com.riseon.firebase`, theo cách truy
+cập chọn ở trang Firebase (xem [Truy cập console](../Core/README.md#truy-cập-console)).
+Chưa có project (thiếu file cấu hình, hoặc hai file trỏ hai project khác nhau) hoặc chưa
+truy cập được thì đầu trang Remote Config có hộp cảnh báo nói lý do; nút **Open
+Firebase** trong hộp mở trang Firebase để sửa.
 
 Trên thanh Parameters, nút mũi tên chéo mở Remote Config của project trên Firebase
 console. Hai nút đám mây, mũi tên xuống là **Pull**, mũi tên lên là **Push**, mở cửa
@@ -281,6 +298,10 @@ Khác nhau giữa hai cách truy cập:
 
 Mỗi lần đăng là một version mới trên console, xem và rollback ở mục Remote Config
 > Change history.
+
+## Lịch sử thay đổi
+
+Xem [CHANGELOG.md](CHANGELOG.md).
 
 ## Giấy phép
 

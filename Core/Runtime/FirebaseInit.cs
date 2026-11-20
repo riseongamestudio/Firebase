@@ -2,7 +2,7 @@
 using Cysharp.Threading.Tasks;
 using Firebase;
 using UnityEngine;
-#if RISEON_FIREBASE_APP_CHECK
+#if FIREBASE_SUPPORT_APPCHECK
 using Firebase.AppCheck;
 #endif
 
@@ -105,7 +105,7 @@ namespace RiseOn.Firebase {
         private static void SetUpAppCheck(FirebaseSettings settings) {
             if (!settings.AppCheck) return;
 
-#if RISEON_FIREBASE_APP_CHECK
+#if FIREBASE_SUPPORT_APPCHECK
             var factory = AppCheckFactory(settings);
             if (factory == null) {
                 Debug.LogWarning($"{nameof(FirebaseInit)}: App Check has no provider on {Application.platform}");
@@ -118,7 +118,7 @@ namespace RiseOn.Firebase {
 #endif
         }
 
-#if RISEON_FIREBASE_APP_CHECK
+#if FIREBASE_SUPPORT_APPCHECK
         private static IAppCheckProviderFactory AppCheckFactory(FirebaseSettings settings) {
             if (Application.isEditor) return EditorDebugFactory();
             if (Debug.isDebugBuild && settings.AppCheckDebugInDevelopmentBuilds) return DebugAppCheckProviderFactory.Instance;

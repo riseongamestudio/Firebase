@@ -74,7 +74,9 @@ namespace RiseOn.Firebase.RemoteConfig {
             return false;
         }
 
-        internal static bool ParseFloat(string text, out float value) => float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+        internal static bool ParseFloat(string text, out float value) {
+            return float.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out value);
+        }
 
         internal static bool ParseString(string text, out string value) {
             value = text;

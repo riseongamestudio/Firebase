@@ -83,7 +83,9 @@ namespace RiseOn.Firebase.RemoteConfig.Editor {
             target[parameter.Key] = existing;
         }
 
-        public void Remove(string key) => Detach(key);
+        public void Remove(string key) {
+            Detach(key);
+        }
 
         /// <summary>The body to publish: the template without its output-only version.</summary>
         public string ToPublishJson(string versionDescription) {

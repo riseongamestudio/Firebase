@@ -68,7 +68,9 @@ namespace RiseOn.Firebase.Editor {
         }
 
         /// <summary>The configured key; throws when the path is empty or the file is not a service account key.</summary>
-        public static ServiceAccountKey LoadServiceAccount() => ServiceAccountKey.Load(ServiceAccountKeyPath);
+        public static ServiceAccountKey LoadServiceAccount() {
+            return ServiceAccountKey.Load(ServiceAccountKeyPath);
+        }
 
         // For GUI drawn every frame: reads the file again only when the path or the file changes.
         internal static ServiceAccountKey LoadServiceAccountCached() {

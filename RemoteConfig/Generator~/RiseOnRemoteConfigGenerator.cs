@@ -17,16 +17,16 @@ namespace RiseOn.Firebase.RemoteConfig.Generator {
         private const string PackAssembly = "RiseOn.Firebase.RemoteConfig";
         private const string KeysFile     = ".RiseOnRemoteConfigGenerator.additionalfile";
 
-        private static readonly string[] Types = { "bool", "int", "float", "string" };
+        private static readonly string[] types = { "bool", "int", "float", "string" };
 
-        private static readonly DiagnosticDescriptor BadLine = new(
+        private static readonly DiagnosticDescriptor badLine = new(
             "RISEONRC001", "Unreadable key line", "{0} line {1} is not 'id, key, type, description' split by tabs; open Project Settings > RiseOn > Firebase > Remote Config to write it again",
             "RiseOn.Firebase.RemoteConfig", DiagnosticSeverity.Error, true);
 
         public void Initialize(GeneratorInitializationContext context) { }
 
         public void Execute(GeneratorExecutionContext context) {
-            if (context.Compilation.AssemblyName != PackAssembly) return;
+            if (context.Compilation.AssemblyName is not PackAssembly) return;
 
             var members    = new StringBuilder();
             var properties = new StringBuilder();
@@ -39,8 +39,8 @@ namespace RiseOn.Firebase.RemoteConfig.Generator {
                     if (line.Trim().Length == 0) continue;
 
                     var parts = line.Split('\t');
-                    if (parts.Length != 4 || !int.TryParse(parts[0], out var id) || id <= 0 || !SyntaxFacts.IsValidIdentifier(parts[1]) || !Types.Contains(parts[2])) {
-                        context.ReportDiagnostic(Diagnostic.Create(BadLine, Location.None, Path.GetFileName(file.Path), i + 1));
+                    if (parts.Length != 4 || !int.TryParse(parts[0], out var id) || id <= 0 || !SyntaxFacts.IsValidIdentifier(parts[1]) || !types.Contains(parts[2])) {
+                        context.ReportDiagnostic(Diagnostic.Create(badLine, Location.None, Path.GetFileName(file.Path), i + 1));
                         continue;
                     }
 

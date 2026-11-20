@@ -22,7 +22,9 @@ namespace RiseOn.Firebase.RemoteConfig.Editor {
         private static bool reloading;
 
         [InitializeOnLoadMethod]
-        private static void WatchReload() => AssemblyReloadEvents.beforeAssemblyReload += () => reloading = true;
+        private static void WatchReload() {
+            AssemblyReloadEvents.beforeAssemblyReload += () => reloading = true;
+        }
 
         [MenuItem("RiseOn/Firebase/Remote Config", priority = 1)]
         internal static void Open() {
@@ -37,13 +39,13 @@ namespace RiseOn.Firebase.RemoteConfig.Editor {
             return new SettingsProvider(PagePath, SettingsScope.Project) {
                 guiHandler = _ => {
                     using var page = SettingsPage.Begin();
-                    RemoteKeysFile.Held = true;
+                    RemoteKeysFile.held = true;
                     drawn = true;
                     Draw(LoadOrCreate());
                 }
               , deactivateHandler = () => {
                     // Leaving or closing the window asks once, for every edit made here: one write and one recompile, or none.
-                    RemoteKeysFile.Held = false;
+                    RemoteKeysFile.held = false;
                     var settings = Find();
                     if (settings && drawn && !reloading && RemoteKeysFile.IsPending(settings)) AskOnLeave(settings);
                     drawn = false;

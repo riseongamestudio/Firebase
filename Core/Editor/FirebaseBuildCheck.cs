@@ -22,7 +22,7 @@ namespace RiseOn.Firebase.Editor {
 
             var problems = FirebaseProjectFiles.Problems(target).ToList();
             if (problems.Count > 0) throw new BuildFailedException("Firebase: fix the config file before building (Project Settings > RiseOn > Firebase):\n- " + string.Join("\n- ", problems));
-#if !RISEON_FIREBASE_APP_CHECK
+#if !FIREBASE_SUPPORT_APPCHECK
             if (FirebaseSettingsProvider.Find().AppCheck) {
                 throw new BuildFailedException($"Firebase: App Check is on but {FirebaseSettingsProvider.AppCheckPackage} is not installed; install it in Project Settings > RiseOn > Firebase, or turn App Check off.");
             }

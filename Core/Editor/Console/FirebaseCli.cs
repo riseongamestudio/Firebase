@@ -35,14 +35,14 @@ namespace RiseOn.Firebase.Editor {
     /// Runs the Firebase CLI (firebase-tools) the developer installed and signed in with <c>firebase login</c>, which keeps its own Google sign-in; the package keeps no Google credentials of its own.
     /// </summary>
     internal static class FirebaseCli {
-        private static readonly Regex JsonStart = new("^{", RegexOptions.Multiline);
+        private static readonly Regex jsonStart = new("^{", RegexOptions.Multiline);
 
         /// <summary>Runs <c>firebase &lt;arguments&gt; --json</c> and returns the <c>result</c> it prints.</summary>
         public static async UniTask<object> RunJsonAsync(string arguments, string workingDirectory = null) {
             var (exitCode, output, error) = await RunAsync(arguments + " --json --non-interactive", workingDirectory);
 
             // The CLI may print notices before the JSON, which starts a line of its own.
-            var begin = JsonStart.Match(output);
+            var begin = jsonStart.Match(output);
             if (!begin.Success || Json.Deserialize(output.Substring(begin.Index)) is not Dictionary<string, object> json) {
                 throw new FirebaseCliException(exitCode == 9009 || error.Contains("not recognized") || error.Contains("not found")
                     ? "the Firebase CLI is not installed or not on the PATH"

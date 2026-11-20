@@ -9,9 +9,11 @@ namespace RiseOn.Firebase.RemoteConfig.Editor {
     [CustomPropertyDrawer(typeof(RemoteParameter))]
     internal sealed class RemoteParameterDrawer : PropertyDrawer {
         // Puts @ before a C# keyword, as the pack's source generator does.
-        private static readonly Microsoft.CSharp.CSharpCodeProvider CSharp = new();
+        private static readonly Microsoft.CSharp.CSharpCodeProvider csharp = new();
 
-        public override float GetPropertyHeight(SerializedProperty property, GUIContent label) => EditorGUIUtility.singleLineHeight * 2 + EditorGUIUtility.standardVerticalSpacing;
+        public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
+            return EditorGUIUtility.singleLineHeight * 2 + EditorGUIUtility.standardVerticalSpacing;
+        }
 
         public override void OnGUI(Rect rect, SerializedProperty parameter, GUIContent label) {
             var line    = EditorGUIUtility.singleLineHeight;
@@ -36,7 +38,7 @@ namespace RiseOn.Firebase.RemoteConfig.Editor {
             var valueRect = new Rect(typeRect.xMax + 4, top.y, liveRect.x - typeRect.xMax - 8, line);
 
             EditorGUI.BeginChangeCheck();
-            var newKey = EditorGUI.DelayedTextField(keyRect, new GUIContent("Key", $"RemoteKey.{CSharp.CreateEscapedIdentifier(key.stringValue)} in code"), key.stringValue);
+            var newKey = EditorGUI.DelayedTextField(keyRect, new GUIContent("Key", $"RemoteKey.{csharp.CreateEscapedIdentifier(key.stringValue)} in code"), key.stringValue);
             if (EditorGUI.EndChangeCheck()) key.stringValue = newKey.Trim();
 
             // The pick comes after this draw, so it reads and writes the object on its own.

@@ -21,7 +21,7 @@ namespace RiseOn.Firebase.RemoteConfig.Editor {
         internal const string FilePath = "Assets/RiseOn/RemoteConfig/Keys.RiseOnRemoteConfigGenerator.additionalfile";
 
         /// <summary>While the settings page draws: it saves the asset on every edit, and writes the file only when Apply is pressed or chosen as it closes.</summary>
-        internal static bool Held;
+        internal static bool held;
 
         // The parameters as they were the last time the page saw them match the file, for Revert. In Library, as only this machine kept them.
         private const string AppliedPath = "Library/RiseOn/RemoteConfigApplied.json";
@@ -53,8 +53,7 @@ namespace RiseOn.Firebase.RemoteConfig.Editor {
         }
 
         /// <summary>
-        /// Writes the file when its text would change and the parameters have no problem, renaming the keys the project's scripts name first;
-        /// Unity recompiles after.
+        /// Writes the file when its text would change and the parameters have no problem, renaming the keys the project's scripts name first; Unity recompiles after.
         /// </summary>
         internal static void Sync(FirebaseRemoteConfigSettings settings) {
             Number(settings);
@@ -99,7 +98,9 @@ namespace RiseOn.Firebase.RemoteConfig.Editor {
             AssetDatabase.SaveAssetIfDirty(settings);
         }
 
-        private static string FileText() => File.Exists(FilePath) ? File.ReadAllText(FilePath) : "";
+        private static string FileText() {
+            return File.Exists(FilePath) ? File.ReadAllText(FilePath) : "";
+        }
 
         private static string LoadAppliedJson() {
             appliedJson ??= File.Exists(AppliedPath) ? File.ReadAllText(AppliedPath) : "";
@@ -169,7 +170,7 @@ namespace RiseOn.Firebase.RemoteConfig.Editor {
 
         // A pull or a merge changed the settings, or someone deleted the file.
         private static void OnPostprocessAllAssets(string[] imported, string[] deleted, string[] moved, string[] movedFrom) {
-            if (Held) return;
+            if (held) return;
             if (!imported.Any(path => Path.GetFileNameWithoutExtension(path) is FirebaseRemoteConfigSettings.ResourceName) && !deleted.Contains(FilePath)) return;
 
             var settings = RemoteConfigSettingsProvider.Find();

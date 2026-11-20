@@ -19,7 +19,7 @@ namespace RiseOn.Firebase.Editor {
 
         private static readonly SettingsTree tree = new();
 
-#if !RISEON_FIREBASE_APP_CHECK
+#if !FIREBASE_SUPPORT_APPCHECK
         private static string appCheckAdding;
 #endif
 
@@ -29,8 +29,8 @@ namespace RiseOn.Firebase.Editor {
         }
 
         [SettingsProvider]
-        private static SettingsProvider Create() =>
-            new(PagePath, SettingsScope.Project) {
+        private static SettingsProvider Create() {
+            return new(PagePath, SettingsScope.Project) {
                 guiHandler = _ => {
                     using var page = SettingsPage.Begin();
                     Draw(LoadOrCreate());
@@ -38,6 +38,7 @@ namespace RiseOn.Firebase.Editor {
               , deactivateHandler = tree.Dispose
               , keywords = new[] { "firebase", "google-services", "GoogleService-Info", "App Check", "log", "console", "service account", "firebase-tools" }
             };
+        }
 
         /// <summary>The whole page for one settings asset.</summary>
         internal static void Draw(FirebaseSettings settings) {
@@ -79,7 +80,9 @@ namespace RiseOn.Firebase.Editor {
         }
 
         /// <summary>The project's settings asset, made with the defaults the first time the page opens.</summary>
-        internal static FirebaseSettings LoadOrCreate() => SettingsAssetUtils.LoadOrCreate<FirebaseSettings>(FirebaseSettings.ResourceName);
+        internal static FirebaseSettings LoadOrCreate() {
+            return SettingsAssetUtils.LoadOrCreate<FirebaseSettings>(FirebaseSettings.ResourceName);
+        }
 
         /// <summary>For the build steps: the asset wherever the project keeps it, or the defaults.</summary>
         internal static FirebaseSettings Find() {
@@ -88,8 +91,9 @@ namespace RiseOn.Firebase.Editor {
         }
 
         /// <summary>Why the game cannot load the asset, which it reads from Resources: null when it can, or when there is none and both run with the defaults.</summary>
-        internal static string OutsideResources() =>
-            SettingsAssetUtils.OutsideResources<FirebaseSettings>(FirebaseSettings.ResourceName) is { } path ? $"{path} is outside a Resources folder, so the game cannot load it and runs with the defaults." : null;
+        internal static string OutsideResources() {
+            return SettingsAssetUtils.OutsideResources<FirebaseSettings>(FirebaseSettings.ResourceName) is { } path ? $"{path} is outside a Resources folder, so the game cannot load it and runs with the defaults." : null;
+        }
 
         // A file with problems shows them at the top of the page instead.
         private static void DrawConfigFile(string platform, FirebaseConfigFile file) {
@@ -188,7 +192,7 @@ namespace RiseOn.Firebase.Editor {
         }
 
         private static void DrawAppCheckPackage() {
-#if RISEON_FIREBASE_APP_CHECK
+#if FIREBASE_SUPPORT_APPCHECK
             var token = EditorUserSettings.GetConfigValue(FirebaseInit.AppCheckEditorTokenKey) ?? "";
             EditorGUI.BeginChangeCheck();
             token = EditorGUILayout.DelayedTextField(new GUIContent("Editor Debug Token", "A debug token made in the Firebase console, App Check > Apps > Manage debug tokens. Kept for you only, in UserSettings."), token);
@@ -201,7 +205,7 @@ namespace RiseOn.Firebase.Editor {
 #endif
         }
 
-#if !RISEON_FIREBASE_APP_CHECK
+#if !FIREBASE_SUPPORT_APPCHECK
         // App Check ships with the Firebase SDK in lockstep, so it takes the installed app's version.
         private static async UniTaskVoid AddAppCheckAsync() {
             appCheckAdding = "Installing";

@@ -9,7 +9,7 @@ namespace RiseOn.Firebase.RemoteConfig {
     /// <summary>
     /// The launch load, run once on its own after <see cref="FirebaseInit"/>: sets the in-app defaults and the fetch settings of <see cref="FirebaseRemoteConfigSettings"/>, activates (after a fetch, or what the last launch fetched, as <see cref="FirebaseRemoteConfigSettings.Loading"/> says), and gives every <see cref="RemoteValue{T}"/> its value of launch; live parameters then follow what is published.<br/>
     /// Code that needs the values of launch awaits <see cref="WaitUntilCompleteAsync"/>.<br/>
-    /// When loading fails, it waits for the one caller of <see cref="PopResultAsync"/> to retry, or to continue with the values the device has fetched and the in-app defaults for the rest.<br/>
+    /// When loading fails, it waits for the one caller of <see cref="PopResultAsync"/> to retry, or to continue with the values the device has fetched and the in-app defaults for the rest.
     /// </summary>
     public static class RemoteConfigInit {
         private static UniTaskCompletionSource completion = new();
@@ -184,7 +184,9 @@ namespace RiseOn.Firebase.RemoteConfig {
             return value.Source is ValueSource.StaticValue ? null : value.StringValue;
         }
 
-        private static string Default(FirebaseRemoteConfigSettings settings, string key) => settings.Parameters.First(parameter => parameter.Key == key).DefaultValue ?? "";
+        private static string Default(FirebaseRemoteConfigSettings settings, string key) {
+            return settings.Parameters.First(parameter => parameter.Key == key).DefaultValue ?? "";
+        }
 
         private static TimeSpan FetchInterval(FirebaseRemoteConfigSettings settings) {
             return TimeSpan.FromMinutes(Debug.isDebugBuild ? settings.DevelopmentMinimumFetchIntervalMinutes : settings.MinimumFetchIntervalMinutes);

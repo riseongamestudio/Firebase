@@ -12,8 +12,8 @@ namespace RiseOn.Firebase.Editor {
     /// A service account key file, the JSON the Firebase console makes in Project settings > Service accounts, and the OAuth access tokens it signs for (RFC 7523 JWT bearer grant, as Google's client libraries do).
     /// </summary>
     internal sealed class ServiceAccountKey {
-        private static readonly HttpClient                                    Http   = new();
-        private static readonly Dictionary<string, (string token, DateTime expiry)> Tokens = new();
+        private static readonly HttpClient                                    http   = new();
+        private static readonly Dictionary<string, (string token, DateTime expiry)> tokens = new();
 
         private readonly RSAParameters rsa;
 
@@ -51,13 +51,13 @@ namespace RiseOn.Firebase.Editor {
         /// <summary>An access token for <paramref name="scope"/>, reused until a minute before it expires.</summary>
         public async UniTask<string> GetAccessTokenAsync(string scope) {
             var cacheKey = ClientEmail + " " + scope;
-            if (Tokens.TryGetValue(cacheKey, out var cached) && cached.expiry > DateTime.UtcNow.AddMinutes(1)) return cached.token;
+            if (tokens.TryGetValue(cacheKey, out var cached) && cached.expiry > DateTime.UtcNow.AddMinutes(1)) return cached.token;
 
             var form = new FormUrlEncodedContent(new Dictionary<string, string> {
                 ["grant_type"] = "urn:ietf:params:oauth:grant-type:jwt-bearer"
               , ["assertion"]  = SignAssertion(scope)
             });
-            using var response = await Http.PostAsync(TokenUri, form);
+            using var response = await http.PostAsync(TokenUri, form);
             var body = await response.Content.ReadAsStringAsync();
             await UniTask.SwitchToMainThread();
 
@@ -69,7 +69,7 @@ namespace RiseOn.Firebase.Editor {
 
             var token  = (string)json["access_token"];
             var expiry = DateTime.UtcNow.AddSeconds(Convert.ToDouble(json["expires_in"]));
-            Tokens[cacheKey] = (token, expiry);
+            tokens[cacheKey] = (token, expiry);
             return token;
         }
 
@@ -90,6 +90,8 @@ namespace RiseOn.Firebase.Editor {
             return signed + "." + Base64Url(key.SignData(Encoding.ASCII.GetBytes(signed), HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1));
         }
 
-        private static string Base64Url(byte[] bytes) => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        private static string Base64Url(byte[] bytes) {
+            return Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+        }
     }
 }

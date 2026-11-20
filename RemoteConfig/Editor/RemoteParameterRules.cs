@@ -11,9 +11,11 @@ namespace RiseOn.Firebase.RemoteConfig.Editor {
         public const int MaxParameters = 2000;
 
         // Firebase: a key starts with an underscore or an English letter and may also have digits; 256 characters at most.
-        private static readonly Regex KeyPattern = new("^[A-Za-z_][A-Za-z0-9_]{0,255}$");
+        private static readonly Regex keyPattern = new("^[A-Za-z_][A-Za-z0-9_]{0,255}$");
 
-        public static bool IsValidKey(string key) => key != null && KeyPattern.IsMatch(key);
+        public static bool IsValidKey(string key) {
+            return key != null && keyPattern.IsMatch(key);
+        }
 
         public static string ConsoleType(RemoteValueType type) {
             switch (type) {

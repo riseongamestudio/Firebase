@@ -105,7 +105,9 @@ namespace RiseOn.Firebase.RemoteConfig.Editor {
             if (!rows.Any(row => showSame || row.Change is not RemoteChange.Same)) HelpBoxUtils.Draw("The project and the console have the same parameters.", MessageType.Info);
         }
 
-        private IEnumerable<RemoteDiffRow> Selected() => rows?.Where(row => row.Selected && row.Change is not RemoteChange.Same) ?? Enumerable.Empty<RemoteDiffRow>();
+        private IEnumerable<RemoteDiffRow> Selected() {
+            return rows?.Where(row => row.Selected && row.Change is not RemoteChange.Same) ?? Enumerable.Empty<RemoteDiffRow>();
+        }
 
         private async UniTask RefreshAsync() {
             var projectId = FirebaseProjectFiles.ProjectId;

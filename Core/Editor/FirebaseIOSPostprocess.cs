@@ -1,4 +1,4 @@
-﻿#if UNITY_IOS && RISEON_FIREBASE_APP_CHECK
+﻿#if UNITY_IOS && FIREBASE_SUPPORT_APPCHECK
 using System.IO;
 using UnityEditor;
 using UnityEditor.Build;
@@ -39,7 +39,7 @@ namespace RiseOn.Firebase.Editor {
             var path  = Path.Combine(buildPath, entitlements);
             var plist = new PlistDocument();
             if (File.Exists(path)) plist.ReadFromFile(path);
-            if (plist.root.values.TryGetValue(AppAttestKey, out var existing) && (existing as PlistElementString)?.value != Environment) {
+            if (plist.root.values.TryGetValue(AppAttestKey, out var existing) && (existing as PlistElementString)?.value is not Environment) {
                 throw new BuildFailedException($"{nameof(FirebaseIOSPostprocess)}: another build step set {AppAttestKey} in {entitlements} to {(existing as PlistElementString)?.value ?? existing.GetType().Name}; App Check needs {Environment}, remove it there");
             }
 

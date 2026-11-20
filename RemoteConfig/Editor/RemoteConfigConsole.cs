@@ -16,15 +16,17 @@ namespace RiseOn.Firebase.RemoteConfig.Editor {
     internal static class RemoteConfigConsole {
         private const string Scope = "https://www.googleapis.com/auth/firebase.remoteconfig";
 
-        private static readonly HttpClient Http = new();
+        private static readonly HttpClient http = new();
 
-        public static string ConsoleUrl(string projectId) => $"https://console.firebase.google.com/project/{projectId}/config";
+        public static string ConsoleUrl(string projectId) {
+            return $"https://console.firebase.google.com/project/{projectId}/config";
+        }
 
         public static async UniTask<RemoteTemplate> FetchAsync(string projectId) {
             switch (FirebaseAccess.Mode) {
                 case FirebaseAccessMode.ServiceAccount: {
                     using var request  = await RequestAsync(HttpMethod.Get, projectId, null);
-                    using var response = await Http.SendAsync(request);
+                    using var response = await http.SendAsync(request);
                     var body = await ReadAsync(response);
                     var eTag = response.Headers.TryGetValues("ETag", out var values) ? values.First() : null;
                     return new RemoteTemplate(ParseObject(body), eTag);
@@ -48,7 +50,7 @@ namespace RiseOn.Firebase.RemoteConfig.Editor {
             if (FirebaseAccess.Mode is not FirebaseAccessMode.ServiceAccount) return;
 
             using var request  = await RequestAsync(HttpMethod.Put, projectId, template, validateOnly: true);
-            using var response = await Http.SendAsync(request);
+            using var response = await http.SendAsync(request);
             await ReadAsync(response);
         }
 
@@ -60,7 +62,7 @@ namespace RiseOn.Firebase.RemoteConfig.Editor {
             switch (FirebaseAccess.Mode) {
                 case FirebaseAccessMode.ServiceAccount: {
                     using var request  = await RequestAsync(HttpMethod.Put, projectId, template, validateOnly: false);
-                    using var response = await Http.SendAsync(request);
+                    using var response = await http.SendAsync(request);
                     await ReadAsync(response);
                     return;
                 }
