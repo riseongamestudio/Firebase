@@ -1,0 +1,16 @@
+{
+    "name": "RiseOn.Firebase.RemoteConfig.Requirements",
+    "rootNamespace": "RiseOn.Firebase.RemoteConfig.Requirements",
+    "references": [],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": true
+}

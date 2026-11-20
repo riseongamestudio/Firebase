@@ -58,7 +58,7 @@ qua; registry nào khai scope cụ thể hơn được ưu tiên, nên các gói
 rồi thêm gói vào `dependencies`:
 
 ```json
-"com.riseon.firebase": "1.0.0"
+"com.riseon.firebase": "1.0.1"
 ```
 
 ## Luồng

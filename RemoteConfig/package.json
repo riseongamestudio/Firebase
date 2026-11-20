@@ -1,10 +1,10 @@
 {
   "name": "com.riseon.firebase.remoteconfig",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "displayName": "RiseOn Firebase Remote Config",
   "description": "Remote Config declared in Project Settings: typed values with an enum per key, a launch fetch that hands any failure to one handler, live parameters, and pull and push with the Firebase console from the Editor",
   "unity": "6000.0",
-  "documentationUrl": "https://github.com/riseongamestudio/Firebase/blob/com.riseon.firebase.remoteconfig/1.0.0/RemoteConfig/README.md",
+  "documentationUrl": "https://github.com/riseongamestudio/Firebase/blob/com.riseon.firebase.remoteconfig/1.0.1/RemoteConfig/README.md",
   "author": {
     "name": "RiseOn"
   },
