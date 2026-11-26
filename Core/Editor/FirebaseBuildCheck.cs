@@ -20,7 +20,7 @@ namespace RiseOn.Firebase.Editor {
 
             if (FirebaseSettingsProvider.OutsideResources() is { } outside) throw new BuildFailedException($"Firebase: {outside} Move it in Project Settings > RiseOn > Firebase.");
 
-            var problems = FirebaseProjectFiles.Problems(target).ToList();
+            var problems = FirebaseProjectFiles.Problems(target).Select(problem => problem.Message).ToList();
             if (problems.Count > 0) throw new BuildFailedException("Firebase: fix the config file before building (Project Settings > RiseOn > Firebase):\n- " + string.Join("\n- ", problems));
 #if !FIREBASE_SUPPORT_APPCHECK
             if (FirebaseSettingsProvider.Find().AppCheck) {

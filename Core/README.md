@@ -29,7 +29,7 @@ rõ không dùng để phát hành. Build cho nền tảng khác bị dừng.
 | Unity 6000.3 | | Bản đang dùng để phát triển |
 | [Odin Inspector](https://odininspector.com) | Cài tay từ Asset Store | Các mục của trang cài đặt |
 | `com.google.firebase.app` 13.17.0 | Tự cài theo `package.json`, từ registry RiseOn | Firebase SDK |
-| `com.riseon.utils` 1.0.18 | Tự cài theo `package.json` | Các mục của trang cài đặt |
+| `com.riseon.utils` 2.0.0 | Tự cài theo `package.json` | Các mục của trang cài đặt |
 | `com.cysharp.unitask` 2.5.11 | Tự cài theo `package.json`, từ OpenUPM | Các hàm `async` |
 | `com.google.firebase.app-check` | Registry RiseOn, cài khi dùng App Check (trang cài đặt có nút cài) | [App Check](#app-check) |
 | `google-services.json`, `GoogleService-Info.plist` | Firebase console, Project settings > Your apps; đặt ở bất kỳ đâu trong `Assets` | Firebase biết project nào |
@@ -62,7 +62,7 @@ lấy từ registry RiseOn dù OpenUPM khai `com.google`.
     }
   ],
   "dependencies": {
-    "com.riseon.firebase": "1.0.2"
+    "com.riseon.firebase": "1.0.3"
   }
 }
 ```
@@ -149,11 +149,13 @@ nút mở trang này. Asset nằm ngoài thư mục `Resources` thì game không
 chạy với giá trị mặc định: trang báo lỗi kèm nút **Move it** chuyển asset về
 `Assets/RiseOn/Resources/`, và build dừng.
 
-Đầu trang là hai file cấu hình: project Firebase mỗi file trỏ tới, và báo lỗi khi
-thiếu file, có hơn một file cùng tên trong `Assets` (Firebase SDK tự chọn một
-file theo luật riêng), package name hoặc bundle id trong file khác Player Settings,
-hoặc hai file trỏ hai project khác nhau. Lỗi của nền tảng nào thì build cho nền
-tảng đó dừng.
+Đầu trang là hai file cấu hình, mỗi file một ô như ô object của Unity kèm project
+Firebase file trỏ tới: bấm thì Project window chỉ tới file, bấm đúp thì mở file. Trang
+báo lỗi khi thiếu file (nút **Open Firebase** mở console, trang Project settings của
+project khi file nền tảng kia đã cho biết project), có hơn một file cùng tên trong
+`Assets` (Firebase SDK tự chọn một file theo luật riêng), package name hoặc bundle id
+trong file khác Player Settings (nút **Player Settings** mở trang Player), hoặc hai file
+trỏ hai project khác nhau. Lỗi của nền tảng nào thì build cho nền tảng đó dừng.
 
 | Mục | Ý nghĩa |
 |---|---|
@@ -173,8 +175,8 @@ App Check thì pack đặt provider trước mọi lệnh Firebase:
 | Android | Play Integrity |
 | iOS | App Attest hoặc DeviceCheck, theo iOS Provider |
 
-Bật App Check mà chưa cài `com.google.firebase.app-check` thì build dừng; trang
-cài đặt có nút cài. Play mode vẫn chạy, chỉ log lỗi và không có App Check.
+Bật App Check mà chưa cài `com.google.firebase.app-check` thì build dừng; đầu trang
+cài đặt báo lỗi kèm nút **Install**. Play mode vẫn chạy, chỉ log lỗi và không có App Check.
 
 Debug token đăng ký trong Firebase console, mục App Check > Apps > Manage debug
 tokens:

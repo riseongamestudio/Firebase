@@ -47,19 +47,26 @@ namespace RiseOn.Firebase.Editor {
                 SettingsAssetUtils.MoveToResources<FirebaseSettings>(FirebaseSettings.ResourceName);
             }
 
-            foreach (var problem in FirebaseProjectFiles.Problems(BuildTarget.Android)) HelpBoxUtils.Draw($"Android: {problem}", MessageType.Error);
-            foreach (var problem in FirebaseProjectFiles.Problems(BuildTarget.iOS)) HelpBoxUtils.Draw($"iOS: {problem}", MessageType.Error);
+            DrawFileProblems("Android", BuildTarget.Android);
+            DrawFileProblems("iOS", BuildTarget.iOS);
+#if !FIREBASE_SUPPORT_APPCHECK
+            // The same box as the other pages' issues with a fix, an error as it stops the build; the button spins while it installs.
+            if (settings.AppCheck) {
+                var button = appCheckAdding == null ? new GUIContent("Install") : SpinnerUtils.Content(appCheckAdding);
+                if (HelpBoxUtils.Draw($"App Check is on and needs {AppCheckPackage}, from the same registry as Firebase.", MessageType.Error, button, appCheckAdding == null)) AddAppCheckAsync().Forget();
+            }
+#endif
 
             using (new Section("Config files", "google-services.json and GoogleService-Info.plist, from the Firebase console > Project settings.")) {
-                DrawConfigFile("Android", FirebaseProjectFiles.Android);
-                DrawConfigFile("iOS", FirebaseProjectFiles.IOS);
+                DrawConfigFile("Android", FirebaseProjectFiles.Android, FirebaseProjectFiles.AndroidFileName);
+                DrawConfigFile("iOS", FirebaseProjectFiles.IOS, FirebaseProjectFiles.IOSFileName);
             }
 
             var root = tree.Begin(settings);
             using (new Section("Startup", "Applied before anything else touches Firebase.")) {
                 root.Children["logLevel"].Draw();
 
-                // App Check's own settings, open only while it is on.
+                // App Check's own settings.
                 var appCheck = root.Children["appCheck"];
                 // The tree is made again as the page reopens; the fold is the session's, which the section keeps each draw.
                 Section.Restore(appCheck);
@@ -67,7 +74,9 @@ namespace RiseOn.Firebase.Editor {
                 if (section.Open) {
                     root.Children["appCheckIOSProvider"].Draw();
                     root.Children["appCheckDebugInDevelopmentBuilds"].Draw();
-                    DrawAppCheckPackage();
+#if FIREBASE_SUPPORT_APPCHECK
+                    DrawEditorToken();
+#endif
                 }
             }
 
@@ -95,17 +104,44 @@ namespace RiseOn.Firebase.Editor {
             return SettingsAssetUtils.OutsideResources<FirebaseSettings>(FirebaseSettings.ResourceName) is { } path ? $"{path} is outside a Resources folder, so the game cannot load it and runs with the defaults." : null;
         }
 
-        // A file with problems shows them at the top of the page instead.
-        private static void DrawConfigFile(string platform, FirebaseConfigFile file) {
-            if (!file.Exists || file.Paths.Count > 1 || file.Error != null) {
-                EditorGUILayout.LabelField(platform, "None");
-                return;
+        // A missing file's box opens the console where it downloads: the project's settings, which list its apps, once the other platform's
+        // file names the project; else the console's start, to pick it. A file for another app opens Player Settings, where the app id is.
+        private static void DrawFileProblems(string platform, BuildTarget target) {
+            foreach (var (message, fix) in FirebaseProjectFiles.Problems(target)) {
+                switch (fix) {
+                    case FirebaseProjectFiles.ProblemFix.Console:
+                        var projectId = FirebaseProjectFiles.ProjectId;
+                        var url       = projectId != null ? $"https://console.firebase.google.com/project/{projectId}/settings/general" : "https://console.firebase.google.com/";
+                        if (HelpBoxUtils.Draw($"{platform}: {message}", MessageType.Error, new GUIContent("Open Firebase", url))) Application.OpenURL(url);
+                        break;
+                    case FirebaseProjectFiles.ProblemFix.PlayerSettings:
+                        if (HelpBoxUtils.Draw($"{platform}: {message}", MessageType.Error, new GUIContent("Player Settings", "Opens Project Settings > Player, whose Other Settings hold the app id"))) SettingsService.OpenProjectSettings("Project/Player");
+                        break;
+                    default:
+                        HelpBoxUtils.Draw($"{platform}: {message}", MessageType.Error);
+                        break;
+                }
+            }
+        }
+
+        // The file as an object field shows an asset, with the project it points to: a click pings it, a double click opens it, as Unity's
+        // field does, and None with the file's name as Unity's has the type, both with the file's icon. No picker, as the page finds the file
+        // wherever it is; a file with problems shows None, its problems at the page's top.
+        private static void DrawConfigFile(string platform, FirebaseConfigFile file, string fileName) {
+            var field   = EditorGUI.PrefixLabel(EditorGUILayout.GetControlRect(), new GUIContent(platform));
+            var asset   = file.Exists && file.Paths.Count == 1 && file.Error == null ? AssetDatabase.LoadMainAssetAtPath(file.Path) : null;
+            var content = asset ? new GUIContent($"{asset.name} ({file.ProjectId})", AssetPreview.GetMiniThumbnail(asset), file.Path) : new GUIContent($"None ({fileName})", AssetPreview.GetMiniTypeThumbnail(Path.GetExtension(fileName) == ".json" ? typeof(TextAsset) : typeof(DefaultAsset)));
+            var id      = GUIUtility.GetControlID(FocusType.Passive, field);
+            var e       = Event.current;
+            if (e.type is EventType.Repaint) {
+                EditorStyles.objectField.Draw(field, content, id, false, field.Contains(e.mousePosition));
+            } else if (asset && e.type is EventType.MouseDown && e.button == 0 && field.Contains(e.mousePosition)) {
+                if (e.clickCount == 2) AssetDatabase.OpenAsset(asset);
+                else EditorGUIUtility.PingObject(asset);
+                e.Use();
             }
 
-            using (new EditorGUILayout.HorizontalScope()) {
-                EditorGUILayout.LabelField(platform, $"{file.ProjectId}  ({file.Path})");
-                if (GUILayout.Button("Show", GUILayout.Width(50))) EditorGUIUtility.PingObject(AssetDatabase.LoadMainAssetAtPath(file.Path));
-            }
+            if (asset) GUI.Label(field, new GUIContent("", file.Path));
         }
 
         private static void DrawAccess(string projectId) {
@@ -134,13 +170,18 @@ namespace RiseOn.Firebase.Editor {
 
             // One control rect cut into the label, the text, the button and the reload, so the row is one line tall as the page's other rows;
             // controls laid out side by side each add their own margins and stand past the section's border.
+            // The label keeps its column; on a narrow page the button gives up a third of what is left to the account.
             var line    = EditorGUILayout.GetControlRect();
-            var refresh = new Rect(line.xMax - Section.ButtonWidth, line.y, Section.ButtonWidth, line.height);
-            var button  = new Rect(refresh.x - Section.LabelGap - 110, line.y, 110, line.height);
-            var value   = EditorGUI.PrefixLabel(new Rect(line.x, line.y, button.x - Section.LabelGap - line.x, line.height), new GUIContent("Google account"));
+            var value   = EditorGUI.PrefixLabel(line, new GUIContent("Google account"));
+            var refresh = new Rect(value.xMax - Section.ButtonWidth, line.y, Section.ButtonWidth, line.height);
+            var room    = Mathf.Max(0, refresh.x - Section.LabelGap - value.x);
+            var width   = room >= 110 + 60 ? 110 : room * 2 / 3;
+            var button  = new Rect(refresh.x - Section.LabelGap - width, line.y, width, line.height);
+            value.xMax  = Mathf.Max(value.x, button.x - Section.LabelGap);
             // A check under way spins beside what the last one found.
             EditorGUIUtility.SetIconSize(new Vector2(Section.IconSize, Section.IconSize));
-            GUI.Label(value, checking ? SpinnerUtils.Content(text) : new GUIContent(text));
+            // One line, cut short where the button leaves less room; the whole text on hover.
+            GUI.Label(value, checking ? SpinnerUtils.Content(text) : new GUIContent(text, text), Section.CutLabel);
             EditorGUIUtility.SetIconSize(Vector2.zero);
 
             // Off while checking or without firebase-tools; the tooltips say so.
@@ -191,19 +232,15 @@ namespace RiseOn.Firebase.Editor {
             }
         }
 
-        private static void DrawAppCheckPackage() {
 #if FIREBASE_SUPPORT_APPCHECK
+        private static void DrawEditorToken() {
             var token = EditorUserSettings.GetConfigValue(FirebaseInit.AppCheckEditorTokenKey) ?? "";
             EditorGUI.BeginChangeCheck();
             token = EditorGUILayout.DelayedTextField(new GUIContent("Editor Debug Token", "A debug token made in the Firebase console, App Check > Apps > Manage debug tokens. Kept for you only, in UserSettings."), token);
             if (EditorGUI.EndChangeCheck()) EditorUserSettings.SetConfigValue(FirebaseInit.AppCheckEditorTokenKey, token.Trim());
             if (token.Length == 0) HelpBoxUtils.Draw("Play mode sends no valid App Check token without one; enforced services then refuse the Editor.", MessageType.Info);
-#else
-            // The same box as the other pages' issues with a fix, an error as it stops the build; the button spins while it installs.
-            var button = appCheckAdding == null ? new GUIContent("Install") : SpinnerUtils.Content(appCheckAdding);
-            if (HelpBoxUtils.Draw($"App Check needs {AppCheckPackage}, from the same registry as Firebase.", MessageType.Error, button, appCheckAdding == null)) AddAppCheckAsync().Forget();
-#endif
         }
+#endif
 
 #if !FIREBASE_SUPPORT_APPCHECK
         // App Check ships with the Firebase SDK in lockstep, so it takes the installed app's version.

@@ -4,6 +4,15 @@ Mọi thay đổi đáng kể của `com.riseon.firebase.remoteconfig` được 
 [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), đánh số theo
 [Semantic Versioning](https://semver.org/lang/vi/).
 
+## [2.0.1] - 2026-11-26
+
+### Đổi
+
+- Mục Parameters: mỗi tham số là một dòng, key ở cột nhãn, kiểu ở cột giá trị; mũi tên đầu dòng mở ra giá trị mặc định, Live, mô tả và nhóm, mỗi
+  thứ một dòng thẳng cột giá trị của trang. Dữ liệu trong asset giữ nguyên.
+- Phụ thuộc RiseOn lên bản phát hành cùng đợt: `com.riseon.firebase` 1.0.3,
+  `com.riseon.utils` 2.0.0.
+
 ## [2.0.0] - 2026-11-20
 
 ### Đổi

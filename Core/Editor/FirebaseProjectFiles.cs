@@ -63,30 +63,33 @@ namespace RiseOn.Firebase.Editor {
             }
         }
 
+        /// <summary>Where a config file problem is fixed, for the page's button.</summary>
+        public enum ProblemFix { None, Console, PlayerSettings }
+
         /// <summary>
         /// What is wrong with the config file a build for <paramref name="target"/> ships: missing, more than one, unreadable, made for another app id than Player Settings builds, or naming another project than the other platform's file.
         /// </summary>
-        public static IEnumerable<string> Problems(BuildTarget target) {
+        public static IEnumerable<(string Message, ProblemFix Fix)> Problems(BuildTarget target) {
             var (file, other, name, platform) = target is BuildTarget.iOS ? (IOS, Android, IOSFileName, NamedBuildTarget.iOS) : (Android, IOS, AndroidFileName, NamedBuildTarget.Android);
             if (!file.Exists) {
-                yield return $"No {name} under Assets. Download it from the Firebase console, Project settings > Your apps.";
+                yield return ($"No {name} under Assets. Download it from the Firebase console, Project settings > Your apps.", ProblemFix.Console);
                 yield break;
             }
 
             // The SDK picks among several by app id and path order, and the Android and iOS steps by different rules.
             if (file.Paths.Count > 1) {
-                yield return $"{file.Paths.Count} {name} files under Assets ({string.Join(", ", file.Paths)}); keep one.";
+                yield return ($"{file.Paths.Count} {name} files under Assets ({string.Join(", ", file.Paths)}); keep one.", ProblemFix.None);
                 yield break;
             }
 
             if (file.Error != null) {
-                yield return $"{file.Path} could not be read ({file.Error}).";
+                yield return ($"{file.Path} could not be read ({file.Error}).", ProblemFix.None);
                 yield break;
             }
 
             var applicationId = PlayerSettings.GetApplicationIdentifier(platform);
-            if (!file.AppIds.Contains(applicationId)) yield return $"{file.Path} is for {string.Join(", ", file.AppIds)}, but Player Settings build {applicationId}.";
-            if (other.ProjectId != null && other.ProjectId != file.ProjectId) yield return $"{file.Path} names project {file.ProjectId}, {other.Path} names {other.ProjectId}.";
+            if (!file.AppIds.Contains(applicationId)) yield return ($"{file.Path} is for {string.Join(", ", file.AppIds)}, but Player Settings build {applicationId}.", ProblemFix.PlayerSettings);
+            if (other.ProjectId != null && other.ProjectId != file.ProjectId) yield return ($"{file.Path} names project {file.ProjectId}, {other.Path} names {other.ProjectId}.", ProblemFix.None);
         }
 
         private static string[] Find(string fileName) {

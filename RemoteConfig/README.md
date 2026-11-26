@@ -28,8 +28,8 @@ Package `com.riseon.firebase.remoteconfig`, namespace `RiseOn.Firebase.RemoteCon
 |---|---|---|
 | Unity 6000.3 | | Bản đang dùng để phát triển |
 | [Odin Inspector](https://odininspector.com) | Cài tay từ Asset Store | Các mục của trang cài đặt |
-| `com.riseon.firebase` 1.0.2 | Tự cài theo `package.json` | Khởi động Firebase, project trong file cấu hình |
-| `com.riseon.utils` 1.0.18 | Tự cài theo `package.json` | Các mục của trang cài đặt |
+| `com.riseon.firebase` 1.0.3 | Tự cài theo `package.json` | Khởi động Firebase, project trong file cấu hình |
+| `com.riseon.utils` 2.0.0 | Tự cài theo `package.json` | Các mục của trang cài đặt |
 | `com.google.firebase.remote-config` 13.17.0 | Tự cài theo `package.json`, từ registry RiseOn | Firebase Remote Config SDK |
 | `com.cysharp.unitask` 2.5.11 | Tự cài theo `package.json`, từ OpenUPM | Các hàm `async` |
 | [Firebase CLI](https://firebase.google.com/docs/cli) | `npm install -g firebase-tools` | Chỉ khi [kéo và đẩy](#kéo-và-đẩy-với-firebase-console) qua tài khoản Google |
@@ -62,7 +62,7 @@ lấy từ registry RiseOn dù OpenUPM khai `com.google`.
     }
   ],
   "dependencies": {
-    "com.riseon.firebase.remoteconfig": "2.0.0"
+    "com.riseon.firebase.remoteconfig": "2.0.1"
   }
 }
 ```
@@ -85,7 +85,10 @@ Dev mở bằng menu **RiseOn > Firebase > Remote Config**, hoặc Edit > Projec
 `Assets/RiseOn/Resources/RiseOnRemoteConfigSettings.asset`. Inspector của asset chỉ
 có nút mở trang này.
 
-| Cột | Ý nghĩa |
+Mục Parameters liệt kê mỗi tham số một dòng: key ở cột nhãn, kiểu ở cột giá trị. Mũi
+tên đầu dòng mở ra dưới dòng các ô còn lại, mỗi ô một dòng.
+
+| Ô | Ý nghĩa |
 |---|---|
 | Key | Key trên console: chữ cái hoặc `_`, rồi chữ, số, `_` |
 | Kiểu | `Bool`, `Int`, `Float`, `String`, `Json`. Đổi sang kiểu mà giá trị mặc định đang có không hợp thì giá trị về `false`, `0`, chuỗi rỗng hay `{}` theo kiểu mới |

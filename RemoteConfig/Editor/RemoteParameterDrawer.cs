@@ -1,102 +1,137 @@
 ﻿using System;
 using System.Globalization;
 using RiseOn.Utils.Editor;
+using Sirenix.OdinInspector.Editor;
+using Sirenix.Utilities.Editor;
 using UnityEditor;
 using UnityEngine;
 
 namespace RiseOn.Firebase.RemoteConfig.Editor {
-    /// <summary>A parameter on two lines: its key, type, default and Live, then its description and group; its id is for enum fields only.</summary>
-    [CustomPropertyDrawer(typeof(RemoteParameter))]
-    internal sealed class RemoteParameterDrawer : PropertyDrawer {
+    /// <summary>
+    /// A parameter of the Parameters list as a header line, the key in the label column and the type in the value column, whose arrow opens the rest
+    /// under it: the in-app default, Live, the description and the group, each a row whose value keeps to the type's column.<br/>
+    /// Written through the value entries, with undo; its id is for enum fields only.
+    /// </summary>
+    internal sealed class RemoteParameterDrawer : OdinValueDrawer<RemoteParameter> {
         // Puts @ before a C# keyword, as the pack's source generator does.
         private static readonly Microsoft.CSharp.CSharpCodeProvider csharp = new();
 
-        public override float GetPropertyHeight(SerializedProperty property, GUIContent label) {
-            return EditorGUIUtility.singleLineHeight * 2 + EditorGUIUtility.standardVerticalSpacing;
-        }
+        // The foldout's arrow, as the IAP page's products leave for it.
+        private const float Arrow = 14;
 
-        public override void OnGUI(Rect rect, SerializedProperty parameter, GUIContent label) {
-            var line    = EditorGUIUtility.singleLineHeight;
-            var spacing = EditorGUIUtility.standardVerticalSpacing;
+        private static readonly GUIContent defaultLabel     = new("Default", "The in-app default, used until the first fetch activates, when a fetch fails, and for keys the console does not have.");
+        private static readonly GUIContent liveLabel        = new("Live", "Takes a value published while the game runs; otherwise the value stays the one of launch until the next launch.");
+        private static readonly GUIContent descriptionLabel = new("Description", "Shown on the key in code, and in the Firebase console.");
+        private static readonly GUIContent groupLabel       = new("Group", "The parameter group in the Firebase console; empty for none.");
 
-            var key         = parameter.FindPropertyRelative("key");
-            var type        = parameter.FindPropertyRelative("type");
-            var value       = parameter.FindPropertyRelative("defaultValue");
-            var description = parameter.FindPropertyRelative("description");
-            var group       = parameter.FindPropertyRelative("group");
-            var live        = parameter.FindPropertyRelative("live");
+        protected override void DrawPropertyLayout(GUIContent label) {
+            var key   = Property.Children["key"];
+            var type  = Property.Children["type"];
+            var value = Property.Children["defaultValue"];
 
-            var labelWidth = EditorGUIUtility.labelWidth;
-            EditorGUIUtility.labelWidth = 70;
+            // The key as the IAP page's product id: as wide as its text, at least as wide as most keys need so that the list's keys line up, and never closer
+            // than the inset to the value column. Placed by the item rather than the layout, which moves it by a margin once the item opens.
+            const float least = 120;
+            var line      = SectionRows.MarkFirstRow(EditorGUILayout.GetControlRect());
+            var valueRect = Rect.MinMaxRect(line.x + EditorGUIUtility.labelWidth + Section.LabelGap, line.y, line.xMax, line.yMax);
+            var text      = (key.ValueEntry.WeakSmartValue as string ?? "").Trim();
+            var arrowRect = new Rect(line.x, line.y, Arrow, line.height);
+            var keyWidth  = Mathf.Max(0, Mathf.Min(Mathf.Max(EditorStyles.textField.CalcSize(new GUIContent(text)).x + Section.Inset, least), valueRect.x - Section.Inset - arrowRect.xMax));
+            var keyRect   = new Rect(arrowRect.xMax, line.y, keyWidth, line.height);
 
-            var top    = new Rect(rect.x, rect.y, rect.width, line);
-            var bottom = new Rect(rect.x, top.yMax + spacing, rect.width, line);
+            var open = Property.State.Expanded;
+            if (EditorGUI.Foldout(arrowRect, open, GUIContent.none, true) != open) Property.State.Expanded = !open;
 
-            var keyRect   = new Rect(top.x, top.y, top.width * 0.4f - 4, line);
-            var typeRect  = new Rect(keyRect.xMax + 4, top.y, 70, line);
-            var liveRect  = new Rect(top.xMax - 50, top.y, 50, line);
-            var valueRect = new Rect(typeRect.xMax + 4, top.y, liveRect.x - typeRect.xMax - 8, line);
+            // The label column's place past the key folds too, as a title does.
+            var rest = Rect.MinMaxRect(keyRect.xMax, line.y, valueRect.x, line.yMax);
+            var e    = Event.current;
+            if (e.type is EventType.MouseDown && e.button == 0 && rest.Contains(e.mousePosition)) {
+                Property.State.Expanded = !open;
+                e.Use();
+            }
 
+            // Delayed: the list is read once a typed key is done.
             EditorGUI.BeginChangeCheck();
-            var newKey = EditorGUI.DelayedTextField(keyRect, new GUIContent("Key", $"RemoteKey.{csharp.CreateEscapedIdentifier(key.stringValue)} in code"), key.stringValue);
-            if (EditorGUI.EndChangeCheck()) key.stringValue = newKey.Trim();
+            var newKey = EditorGUI.DelayedTextField(keyRect, text);
+            if (EditorGUI.EndChangeCheck()) key.ValueEntry.WeakSmartValue = newKey.Trim();
+            GUI.Label(keyRect, new GUIContent("", $"The key in the Firebase console: a letter or underscore, then letters, digits or underscores; RemoteKey.{csharp.CreateEscapedIdentifier(text)} in code"));
 
-            // The pick comes after this draw, so it reads and writes the object on its own.
-            var serialized = type.serializedObject;
-            var typePath   = type.propertyPath;
-            var valuePath  = value.propertyPath;
-            ChoiceFieldUtils.Enum(typeRect, (RemoteValueType)type.enumValueIndex, picked => {
-                var newType = (RemoteValueType)picked;
-                serialized.Update();
-                serialized.FindProperty(typePath).enumValueIndex = (int)newType;
-                var newValue = serialized.FindProperty(valuePath);
-                if (RemoteParameterRules.CheckValue(newType, newValue.stringValue) != null) newValue.stringValue = RemoteParameterRules.ZeroValue(newType);
-                serialized.ApplyModifiedProperties();
-            });
+            // A default the new type cannot read goes back to that type's zero.
+            ChoiceFieldUtils.Enum(valueRect, (RemoteValueType) type.ValueEntry.WeakSmartValue, picked => Property.Tree.DelayActionUntilRepaint(() => {
+                var newType = (RemoteValueType) picked;
+                type.ValueEntry.WeakSmartValue = newType;
+                if (RemoteParameterRules.CheckValue(newType, value.ValueEntry.WeakSmartValue as string ?? "") != null) value.ValueEntry.WeakSmartValue = RemoteParameterRules.ZeroValue(newType);
+            }));
 
-            EditorGUIUtility.labelWidth = 50;
-            DrawDefault(valueRect, (RemoteValueType)type.enumValueIndex, value);
-            EditorGUIUtility.labelWidth = 30;
-            live.boolValue = EditorGUI.ToggleLeft(liveRect, new GUIContent("Live", "Takes values published while the game runs"), live.boolValue);
+            // Odin's fade, as the page's sections open. In by the arrow alone: the drag handle already moves the whole row in.
+            if (SirenixEditorGUI.BeginFadeGroup(Property, open)) {
+                GUILayout.BeginHorizontal();
+                GUILayout.Space(Arrow);
+                GUILayout.BeginVertical();
+                GUIHelper.PushLabelWidth(EditorGUIUtility.labelWidth - Arrow);
+                Default(value, (RemoteValueType) type.ValueEntry.WeakSmartValue);
+                Live(Property.Children["live"]);
+                Text(Property.Children["description"], descriptionLabel);
+                Text(Property.Children["group"], groupLabel);
+                GUIHelper.PopLabelWidth();
+                GUILayout.EndVertical();
+                GUILayout.EndHorizontal();
+            }
 
-            EditorGUIUtility.labelWidth = 70;
-            var descriptionRect = new Rect(bottom.x, bottom.y, bottom.width * 0.7f - 4, line);
-            var groupRect       = new Rect(descriptionRect.xMax + 4, bottom.y, bottom.xMax - descriptionRect.xMax - 4, line);
-            description.stringValue = EditorGUI.DelayedTextField(descriptionRect, "Description", description.stringValue);
-            EditorGUIUtility.labelWidth = 40;
-            group.stringValue = EditorGUI.DelayedTextField(groupRect, "Group", group.stringValue);
-
-            EditorGUIUtility.labelWidth = labelWidth;
+            SirenixEditorGUI.EndFadeGroup();
         }
 
-        private static void DrawDefault(Rect rect, RemoteValueType type, SerializedProperty value) {
-            var label = new GUIContent("Default", "The in-app default");
-
-            // Writes only what the user changed, so drawing never rewrites a value pulled from the console.
+        // Written only when changed here, so drawing never rewrites a value pulled from the console.
+        private static void Default(InspectorProperty value, RemoteValueType type) {
+            var rect    = Line(defaultLabel);
+            var current = value.ValueEntry.WeakSmartValue as string ?? "";
             EditorGUI.BeginChangeCheck();
             string text;
             switch (type) {
                 case RemoteValueType.Bool:
-                    RemoteValue.ParseBool(value.stringValue, out var flag);
-                    text = EditorGUI.Toggle(rect, label, flag) ? "true" : "false";
+                    RemoteValue.ParseBool(current, out var flag);
+                    text = EditorGUI.Toggle(rect, flag) ? "true" : "false";
                     break;
                 case RemoteValueType.Int:
-                    RemoteValue.ParseInt(value.stringValue, out var number);
-                    text = EditorGUI.DelayedIntField(rect, label, number).ToString(CultureInfo.InvariantCulture);
+                    RemoteValue.ParseInt(current, out var number);
+                    text = EditorGUI.DelayedIntField(rect, number).ToString(CultureInfo.InvariantCulture);
                     break;
                 case RemoteValueType.Float:
-                    RemoteValue.ParseFloat(value.stringValue, out var real);
-                    text = EditorGUI.DelayedFloatField(rect, label, real).ToString("R", CultureInfo.InvariantCulture);
+                    RemoteValue.ParseFloat(current, out var real);
+                    text = EditorGUI.DelayedFloatField(rect, real).ToString("R", CultureInfo.InvariantCulture);
                     break;
                 case RemoteValueType.String:
                 case RemoteValueType.Json:
-                    text = EditorGUI.DelayedTextField(rect, label, value.stringValue);
+                    text = EditorGUI.DelayedTextField(rect, current);
                     break;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(type), type, null);
             }
 
-            if (EditorGUI.EndChangeCheck()) value.stringValue = text;
+            if (EditorGUI.EndChangeCheck()) value.ValueEntry.WeakSmartValue = text;
+        }
+
+        private static void Live(InspectorProperty live) {
+            var rect = Line(liveLabel);
+            EditorGUI.BeginChangeCheck();
+            var on = EditorGUI.Toggle(rect, live.ValueEntry.WeakSmartValue is true);
+            if (EditorGUI.EndChangeCheck()) live.ValueEntry.WeakSmartValue = on;
+        }
+
+        // Delayed, as the key.
+        private static void Text(InspectorProperty field, GUIContent label) {
+            var rect = Line(label);
+            EditorGUI.BeginChangeCheck();
+            var text = EditorGUI.DelayedTextField(rect, field.ValueEntry.WeakSmartValue as string ?? "");
+            if (EditorGUI.EndChangeCheck()) field.ValueEntry.WeakSmartValue = text;
+        }
+
+        // A row: its label, and its value where a row's own label would end, in line with the page's values.
+        private static Rect Line(GUIContent label) {
+            var line   = EditorGUILayout.GetControlRect();
+            var valueX = line.x + EditorGUIUtility.labelWidth + Section.LabelGap;
+            GUI.Label(Rect.MinMaxRect(line.x, line.y, valueX, line.yMax), label, Section.CutLabel);
+            return Rect.MinMaxRect(valueX, line.y, line.xMax, line.yMax);
         }
     }
 }
