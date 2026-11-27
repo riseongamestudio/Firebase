@@ -62,7 +62,7 @@ lấy từ registry RiseOn dù OpenUPM khai `com.google`.
     }
   ],
   "dependencies": {
-    "com.riseon.firebase": "1.0.3"
+    "com.riseon.firebase": "1.0.4"
   }
 }
 ```

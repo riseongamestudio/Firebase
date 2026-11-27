@@ -4,6 +4,15 @@ Mọi thay đổi đáng kể của `com.riseon.firebase` được ghi ở đây
 [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), đánh số theo
 [Semantic Versioning](https://semver.org/lang/vi/).
 
+## [1.0.4] - 2026-11-27
+
+### Đổi
+
+- Trang settings, mục **Config files**: mỗi dòng mang tên file
+  (`google-services.json`, `GoogleService-Info.plist`) và icon nền tảng của Unity trước
+  ô, thay cho chữ Android, iOS.
+- Phụ thuộc `com.riseon.utils` 2.1.0.
+
 ## [1.0.3] - 2026-11-26
 
 ### Đổi

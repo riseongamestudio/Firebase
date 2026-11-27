@@ -1,6 +1,6 @@
 {
   "name": "com.riseon.firebase",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "displayName": "RiseOn Firebase",
   "description": "Starts Firebase on its own at launch: App Check and log level from the project settings, the Google Play services check, and any failure handed to one handler in the game",
   "unity": "6000.3",
@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "com.google.firebase.app": "13.17.0",
-    "com.riseon.utils": "2.0.0",
+    "com.riseon.utils": "2.1.0",
     "com.cysharp.unitask": "2.5.11"
   }
 }

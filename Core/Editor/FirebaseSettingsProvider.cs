@@ -58,8 +58,8 @@ namespace RiseOn.Firebase.Editor {
 #endif
 
             using (new Section("Config files", "google-services.json and GoogleService-Info.plist, from the Firebase console > Project settings.")) {
-                DrawConfigFile("Android", FirebaseProjectFiles.Android, FirebaseProjectFiles.AndroidFileName);
-                DrawConfigFile("iOS", FirebaseProjectFiles.IOS, FirebaseProjectFiles.IOSFileName);
+                DrawConfigFile(PlatformMarks.Android, FirebaseProjectFiles.Android, FirebaseProjectFiles.AndroidFileName);
+                DrawConfigFile(PlatformMarks.IOS, FirebaseProjectFiles.IOS, FirebaseProjectFiles.IOSFileName);
             }
 
             var root = tree.Begin(settings);
@@ -127,8 +127,12 @@ namespace RiseOn.Firebase.Editor {
         // The file as an object field shows an asset, with the project it points to: a click pings it, a double click opens it, as Unity's
         // field does, and None with the file's name as Unity's has the type, both with the file's icon. No picker, as the page finds the file
         // wherever it is; a file with problems shows None, its problems at the page's top.
-        private static void DrawConfigFile(string platform, FirebaseConfigFile file, string fileName) {
-            var field   = EditorGUI.PrefixLabel(EditorGUILayout.GetControlRect(), new GUIContent(platform));
+        // Named by the file the console gives, the platform's mark before the field.
+        private static void DrawConfigFile(GUIContent mark, FirebaseConfigFile file, string fileName) {
+            var value   = EditorGUI.PrefixLabel(EditorGUILayout.GetControlRect(), new GUIContent(fileName));
+            var markW   = PlatformMarks.Width(mark);
+            PlatformMarks.Draw(new Rect(value.x, value.y, markW, value.height), mark);
+            var field   = Rect.MinMaxRect(value.x + markW + Section.LabelGap, value.y, value.xMax, value.yMax);
             var asset   = file.Exists && file.Paths.Count == 1 && file.Error == null ? AssetDatabase.LoadMainAssetAtPath(file.Path) : null;
             var content = asset ? new GUIContent($"{asset.name} ({file.ProjectId})", AssetPreview.GetMiniThumbnail(asset), file.Path) : new GUIContent($"None ({fileName})", AssetPreview.GetMiniTypeThumbnail(Path.GetExtension(fileName) == ".json" ? typeof(TextAsset) : typeof(DefaultAsset)));
             var id      = GUIUtility.GetControlID(FocusType.Passive, field);
