@@ -1,8 +1,14 @@
-﻿using System;
+﻿// Google ships the Firebase SDK for these alone: a WebGL player, among others, has none of its assemblies.
+#if UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || UNITY_STANDALONE
+#define HAS_FIREBASE_SDK
+#endif
+using System;
 using Cysharp.Threading.Tasks;
-using Firebase;
 using UnityEngine;
-#if FIREBASE_SUPPORT_APPCHECK
+#if HAS_FIREBASE_SDK
+using Firebase;
+#endif
+#if HAS_FIREBASE_SDK && FIREBASE_SUPPORT_APPCHECK
 using Firebase.AppCheck;
 #endif
 
@@ -10,18 +16,24 @@ namespace RiseOn.Firebase {
     /// <summary>
     /// Starts Firebase once per launch on its own, before the first scene loads: applies <see cref="FirebaseSettings"/> (App Check first, as it must come before any other Firebase call), checks Google Play services and asks the player to fix them, then creates the default app.<br/>
     /// Every package that uses Firebase awaits <see cref="WaitUntilCompleteAsync"/>; nothing has to start it.<br/>
-    /// If it fails, it waits for the one caller of <see cref="PopResultAsync"/> to retry; a game that uses Firebase does not run without it.
+    /// If it fails, it waits for the one caller of <see cref="PopResultAsync"/> to retry; a game that uses Firebase does not run without it.<br/>
+    /// Where Firebase does not run (see <see cref="IsSupported"/>) it logs one error and completes at once with <see cref="FirebaseInitUnsupported"/>; the packages that use Firebase then stand still.
     /// </summary>
     public static class FirebaseInit {
-        private static UniTaskCompletionSource<FirebaseApp> completion = new();
-        private static Attempt                              current    = new();
-        private static bool                                 configured;
+        private static UniTaskCompletionSource completion = new();
+        private static Attempt                 current    = new();
+#if HAS_FIREBASE_SDK
+        private static bool                    configured;
+#endif
+
+        /// <summary>Whether Firebase runs here: on Android, on iOS and in the Editor, not in a WebGL or desktop player.</summary>
+        public static bool IsSupported => Application.isEditor || Application.platform is RuntimePlatform.Android or RuntimePlatform.IPhonePlayer;
 
         /// <summary>
-        /// Completes on Unity's thread with the default app once the startup completes, at once if it has.<br/>
+        /// Completes on Unity's thread once the startup completes, at once if it has; Firebase's default app is ready then.<br/>
         /// Never fails.
         /// </summary>
-        public static UniTask<FirebaseApp> WaitUntilCompleteAsync() {
+        public static UniTask WaitUntilCompleteAsync() {
             return completion.Task;
         }
 
@@ -38,16 +50,28 @@ namespace RiseOn.Firebase {
         // Static state outlives a play session when the Editor skips the domain reload.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetStatics() {
-            completion = new UniTaskCompletionSource<FirebaseApp>();
+            completion = new UniTaskCompletionSource();
             current    = new Attempt();
+#if HAS_FIREBASE_SDK
             configured = false;
+#endif
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Run() {
+            if (!IsSupported) {
+                Debug.LogError($"{nameof(FirebaseInit)}: Firebase does not run on {Application.platform}, only on Android and iOS; the packages that use it stand still");
+                current.Result.TrySetResult(new FirebaseInitUnsupported());
+                completion.TrySetResult();
+                return;
+            }
+
+#if HAS_FIREBASE_SDK
             RunAsync(current).Forget();
+#endif
         }
 
+#if HAS_FIREBASE_SDK
         private static async UniTaskVoid RunAsync(Attempt attempt) {
             attempt.Result.TrySetResult(await AttemptAsync());
         }
@@ -58,10 +82,10 @@ namespace RiseOn.Firebase {
             if (!configured) {
                 try {
                     var settings = FirebaseSettings.Load();
-                    FirebaseApp.LogLevel = settings.LogLevel;
+                    FirebaseApp.LogLevel = Enum.Parse<LogLevel>(settings.LogLevel.ToString());
                     SetUpAppCheck(settings);
                 } catch (Exception e) {
-                    return Fail(new FirebaseInitException(DependencyStatus.UnavailableOther, "the settings could not be applied", e));
+                    return Fail(new FirebaseInitException("the settings could not be applied", e));
                 }
 
                 configured = true;
@@ -71,22 +95,22 @@ namespace RiseOn.Firebase {
             try {
                 status = await FirebaseApp.CheckAndFixDependenciesAsync();
             } catch (Exception e) {
-                return Fail(new FirebaseInitException(DependencyStatus.UnavailableOther, "the dependency check threw", e));
+                return Fail(new FirebaseInitException("the dependency check threw", e));
             }
 
             await UniTask.SwitchToMainThread();
             // Not only Google Play services: an Android build without google-services.json also gets UnavailableInvalid.
-            if (status is not DependencyStatus.Available) return Fail(new FirebaseInitException(status, $"the dependency check returned {status}"));
+            if (status is not DependencyStatus.Available) return Fail(new FirebaseInitException($"the dependency check returned {status}"));
 
             FirebaseApp app;
             try {
                 app = FirebaseApp.DefaultInstance;
             } catch (Exception e) {
-                return Fail(new FirebaseInitException(status, "the default app could not be created", e));
+                return Fail(new FirebaseInitException("the default app could not be created", e));
             }
 
             Debug.Log($"{nameof(FirebaseInit)}: ready ({app.Options.ProjectId})");
-            completion.TrySetResult(app);
+            completion.TrySetResult();
             return new FirebaseInitSucceeded();
         }
 
@@ -162,6 +186,7 @@ namespace RiseOn.Firebase {
             while (end < text.Length && char.IsDigit(text[end])) end++;
             return int.TryParse(text.Substring(start, end - start), out var major) ? major : 0;
         }
+#endif
 #endif
 
         /// <summary>The EditorUserSettings key of the App Check debug token the Editor uses.</summary>

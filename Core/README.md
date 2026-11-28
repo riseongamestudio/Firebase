@@ -5,9 +5,9 @@ kiểm tra Google Play services, tạo app mặc định. Pack tự chạy trư�
 load, game không phải gọi gì. Package nào dùng Firebase thì
 `await FirebaseInit.WaitUntilCompleteAsync()`.
 
-Package `com.riseon.firebase`, namespace `RiseOn.Firebase`. Chỉ build cho Android
-và iOS: SDK desktop của Firebase là bản beta dành cho lúc phát triển, Google ghi
-rõ không dùng để phát hành. Build cho nền tảng khác bị dừng.
+Package `com.riseon.firebase`, namespace `RiseOn.Firebase`. Chạy trên Android, iOS
+và trong Editor. Game vẫn build được cho nền tảng khác (WebGL, desktop), nhưng ở đó
+Firebase không chạy, xem [Nền tảng khác](#nền-tảng-khác).
 
 ## Mục lục
 
@@ -16,6 +16,7 @@ rõ không dùng để phát hành. Build cho nền tảng khác bị dừng.
 - [Luồng](#luồng)
 - [Dùng trong game](#dùng-trong-game)
 - [Khi khởi động lỗi](#khi-khởi-động-lỗi)
+- [Nền tảng khác](#nền-tảng-khác)
 - [Cài đặt của project](#cài-đặt-của-project)
 - [App Check](#app-check)
 - [Truy cập console](#truy-cập-console)
@@ -29,7 +30,7 @@ rõ không dùng để phát hành. Build cho nền tảng khác bị dừng.
 | Unity 6000.3 | | Bản đang dùng để phát triển |
 | [Odin Inspector](https://odininspector.com) | Cài tay từ Asset Store | Các mục của trang cài đặt |
 | `com.google.firebase.app` 13.17.0 | Tự cài theo `package.json`, từ registry RiseOn | Firebase SDK |
-| `com.riseon.utils` 2.0.0 | Tự cài theo `package.json` | Các mục của trang cài đặt |
+| `com.riseon.utils` 2.1.0 | Tự cài theo `package.json` | Các mục của trang cài đặt |
 | `com.cysharp.unitask` 2.5.11 | Tự cài theo `package.json`, từ OpenUPM | Các hàm `async` |
 | `com.google.firebase.app-check` | Registry RiseOn, cài khi dùng App Check (trang cài đặt có nút cài) | [App Check](#app-check) |
 | `google-services.json`, `GoogleService-Info.plist` | Firebase console, Project settings > Your apps; đặt ở bất kỳ đâu trong `Assets` | Firebase biết project nào |
@@ -98,12 +99,13 @@ bước chặn đó; trang cài đặt báo đỏ lỗi này ở đầu trang.
 using RiseOn.Firebase;
 
 // Bên nào dùng Firebase thì chờ; xong rồi thì trả về ngay.
-var app = await FirebaseInit.WaitUntilCompleteAsync();
+await FirebaseInit.WaitUntilCompleteAsync();
 ```
 
 | API | Ý nghĩa |
 |---|---|
-| `WaitUntilCompleteAsync()` | Hoàn thành trên thread của Unity, trả app mặc định. Không bao giờ lỗi |
+| `WaitUntilCompleteAsync()` | Hoàn thành trên thread của Unity khi app mặc định của Firebase đã sẵn sàng; trên [nền tảng khác](#nền-tảng-khác) thì hoàn thành ngay mà không có app. Không bao giờ lỗi |
+| `IsSupported` | Firebase có chạy trên nền tảng này không: có trên Android, iOS và trong Editor |
 
 ## Khi khởi động lỗi
 
@@ -115,15 +117,15 @@ trong game (thường là màn boot) lấy kết quả ra và cho thử lại:
 var result = await FirebaseInit.PopResultAsync();
 while (result is FirebaseInitFailed failed) {
     // Báo người chơi cập nhật hoặc bật Google Play services, rồi kiểm tra lại.
-    await updatePopup.ShowAsync(failed.Error.Status);
+    await updatePopup.ShowAsync();
     result = await failed.RetryAsync();
 }
 ```
 
 | API | Ý nghĩa |
 |---|---|
-| `PopResultAsync()` | Kết quả của lần chạy hiện tại: `FirebaseInitSucceeded` hoặc `FirebaseInitFailed`. Mỗi lần chạy chỉ lấy ra được một lần; gọi lần thứ hai thì ném `InvalidOperationException`, để một lỗi không tới hai chỗ xử lý |
-| `FirebaseInitFailed.Error` | `FirebaseInitException`; `Status` là kết quả kiểm tra Google Play services, `UnavailableOther` khi lỗi xảy ra trước khi có kết quả đó; `InnerException` là lỗi gốc nếu có |
+| `PopResultAsync()` | Kết quả của lần chạy hiện tại: `FirebaseInitSucceeded`, `FirebaseInitFailed`, hoặc `FirebaseInitUnsupported` trên [nền tảng khác](#nền-tảng-khác). Mỗi lần chạy chỉ lấy ra được một lần; gọi lần thứ hai thì ném `InvalidOperationException`, để một lỗi không tới hai chỗ xử lý |
+| `FirebaseInitFailed.Error` | `FirebaseInitException`; message ghi bước nào lỗi, và kết quả kiểm tra Google Play services khi kết quả đó khác `Available`; `InnerException` là lỗi gốc nếu có |
 | `FirebaseInitFailed.RetryAsync()` | Kiểm tra lại (lại hỏi người chơi sửa Google Play services), trả kết quả mới cho chính bên gọi |
 
 Mỗi `FirebaseInitFailed` chỉ thử lại được một lần. Game không lấy kết quả ra
@@ -138,6 +140,28 @@ mọi lần thử mà máy có Google Play services thì là lỗi của game (f
 Firebase): xem log `FirebaseInit` và `FirebaseInitFailed.Error`. Máy không có Google
 Play services mà game dùng module cần nó thì game dừng ở màn boot trên máy đó; game phải
 chạy được trên những máy như vậy thì chọn module theo bảng ở trang Firebase nói trên.
+
+## Nền tảng khác
+
+Trên WebGL và bản build desktop, Firebase không chạy: SDK Firebase cho Unity không có
+bản WebGL, còn SDK desktop chỉ là bản beta dành cho lúc phát triển. Game không phải gỡ
+pack hay bọc code gọi pack bằng `#if` để build cho các nền tảng này:
+
+- Lúc build, pack ghi một cảnh báo trong Console, build vẫn ra. Các kiểm tra build của
+  `com.riseon.firebase` (file cấu hình, asset settings, App Check) chỉ chạy khi build
+  Android và iOS; kiểm tra của Remote Config chạy trên mọi nền tảng.
+- Lúc chạy, `FirebaseInit` ghi một lỗi vào log rồi hoàn thành ngay, nên không bên nào
+  chờ mãi. `PopResultAsync()` trả `FirebaseInitUnsupported`, không có gì để thử lại.
+- Pack dùng Firebase đứng yên: Remote Config giữ giá trị mặc định trong app, Analytics
+  không gửi gì.
+
+API của pack không dùng kiểu của SDK Firebase, nên code game gọi pack compile được trên
+mọi nền tảng. Code game gọi thẳng SDK Firebase (namespace `Firebase.*`) thì:
+
+- bọc code đó trong `#if UNITY_ANDROID || UNITY_IOS || UNITY_EDITOR`, vì bản build
+  WebGL không có SDK;
+- lúc chạy, chỉ gọi SDK khi `FirebaseInit.IsSupported` là `true`: bản build desktop có
+  SDK nhưng pack không khởi động Firebase ở đó.
 
 ## Cài đặt của project
 

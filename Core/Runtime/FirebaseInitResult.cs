@@ -1,15 +1,22 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
-using Firebase;
 
 namespace RiseOn.Firebase {
-    /// <summary>How one run of the startup ended: <see cref="FirebaseInitSucceeded"/> or <see cref="FirebaseInitFailed"/>.</summary>
+    /// <summary>How one run of the startup ended: <see cref="FirebaseInitSucceeded"/>, <see cref="FirebaseInitFailed"/> or <see cref="FirebaseInitUnsupported"/>.</summary>
     public abstract class FirebaseInitResult {
         private protected FirebaseInitResult() { }
     }
 
     public sealed class FirebaseInitSucceeded : FirebaseInitResult {
         internal FirebaseInitSucceeded() { }
+    }
+
+    /// <summary>
+    /// Firebase does not run on this platform (see <see cref="FirebaseInit.IsSupported"/>): nothing started, and <see cref="FirebaseInit.WaitUntilCompleteAsync"/> completed at once so that nothing waits on it.<br/>
+    /// The packages that use Firebase stand still: Remote Config keeps the in-app defaults, Analytics sends nothing.
+    /// </summary>
+    public sealed class FirebaseInitUnsupported : FirebaseInitResult {
+        internal FirebaseInitUnsupported() { }
     }
 
     /// <summary>
@@ -38,12 +45,8 @@ namespace RiseOn.Firebase {
         }
     }
 
+    /// <summary>Its message says which step failed and, after the dependency check, what the check returned.</summary>
     public sealed class FirebaseInitException : Exception {
-        /// <summary>What the dependency check returned; <see cref="DependencyStatus.Available"/> when the app itself failed.</summary>
-        public DependencyStatus Status { get; }
-
-        internal FirebaseInitException(DependencyStatus status, string message, Exception inner = null) : base(message, inner) {
-            Status = status;
-        }
+        internal FirebaseInitException(string message, Exception inner = null) : base(message, inner) { }
     }
 }

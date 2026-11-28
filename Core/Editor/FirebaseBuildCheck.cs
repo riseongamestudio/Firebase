@@ -2,10 +2,12 @@
 using UnityEditor;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
+using UnityEngine;
 
 namespace RiseOn.Firebase.Editor {
     /// <summary>
-    /// Stops a build that would ship without a working Firebase: a platform Firebase does not ship on, a config file that is missing or made for another app, settings the game cannot load, or App Check on without its package.<br/>
+    /// Stops a build that would ship without a working Firebase: a config file that is missing or made for another app, settings the game cannot load, or App Check on without its package.<br/>
+    /// A build for another platform goes through with a warning: Firebase stands still there (see <see cref="FirebaseInit.IsSupported"/>).<br/>
     /// The settings page shows the same problems.
     /// </summary>
     internal sealed class FirebaseBuildCheck : IPreprocessBuildWithReport {
@@ -13,9 +15,10 @@ namespace RiseOn.Firebase.Editor {
 
         public void OnPreprocessBuild(BuildReport report) {
             var target = report.summary.platform;
-            // Firebase's desktop SDK is a beta for development workflows, not for shipping.
+            // Firebase's desktop SDK is a beta for development workflows, not for shipping; WebGL has no SDK at all.
             if (target is not BuildTarget.Android and not BuildTarget.iOS) {
-                throw new BuildFailedException($"com.riseon.firebase ships on Android and iOS only, not {target}; remove the package from builds for {target}.");
+                Debug.LogWarning($"Firebase: com.riseon.firebase runs on Android and iOS only; in this {target} build it logs an error at launch and stands still.");
+                return;
             }
 
             if (FirebaseSettingsProvider.OutsideResources() is { } outside) throw new BuildFailedException($"Firebase: {outside} Move it in Project Settings > RiseOn > Firebase.");

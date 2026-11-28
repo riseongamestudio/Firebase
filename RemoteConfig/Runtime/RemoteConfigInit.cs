@@ -1,21 +1,30 @@
-﻿using System;
+﻿// Google ships the Firebase SDK for these alone: a WebGL player, among others, has none of its assemblies.
+#if UNITY_EDITOR || UNITY_ANDROID || UNITY_IOS || UNITY_STANDALONE
+#define HAS_FIREBASE_SDK
+#endif
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Cysharp.Threading.Tasks;
-using Firebase.RemoteConfig;
 using UnityEngine;
+#if HAS_FIREBASE_SDK
+using Firebase.RemoteConfig;
+#endif
 
 namespace RiseOn.Firebase.RemoteConfig {
     /// <summary>
     /// The launch load, run once on its own after <see cref="FirebaseInit"/>: sets the in-app defaults and the fetch settings of <see cref="FirebaseRemoteConfigSettings"/>, activates (after a fetch, or what the last launch fetched, as <see cref="FirebaseRemoteConfigSettings.Loading"/> says), and gives every <see cref="RemoteValue{T}"/> its value of launch; live parameters then follow what is published.<br/>
     /// Code that needs the values of launch awaits <see cref="WaitUntilCompleteAsync"/>.<br/>
-    /// When loading fails, it waits for the one caller of <see cref="PopResultAsync"/> to retry, or to continue with the values the device has fetched and the in-app defaults for the rest.
+    /// When loading fails, it waits for the one caller of <see cref="PopResultAsync"/> to retry, or to continue with the values the device has fetched and the in-app defaults for the rest.<br/>
+    /// Where Firebase does not run (see <see cref="FirebaseInit.IsSupported"/>) it completes at once with <see cref="RemoteConfigInitUnsupported"/>, every value keeping its in-app default.
     /// </summary>
     public static class RemoteConfigInit {
         private static UniTaskCompletionSource completion = new();
         private static Attempt                 current    = new();
+#if HAS_FIREBASE_SDK
         private static bool                    configured;
         private static FirebaseRemoteConfig    listening;
+#endif
 
         /// <summary>Completes on Unity's thread once every value has its value of launch, at once if it has; never fails.</summary>
         public static UniTask WaitUntilCompleteAsync() {
@@ -37,17 +46,29 @@ namespace RiseOn.Firebase.RemoteConfig {
         private static void ResetStatics() {
             completion = new UniTaskCompletionSource();
             current    = new Attempt();
+#if HAS_FIREBASE_SDK
             configured = false;
             if (listening != null) listening.OnConfigUpdateListener -= OnConfigUpdate;
             listening = null;
+#endif
             RemoteValues.Forget();
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void Run() {
+            // FirebaseInit has said why; every value already holds its in-app default.
+            if (!FirebaseInit.IsSupported) {
+                current.Result.TrySetResult(new RemoteConfigInitUnsupported());
+                completion.TrySetResult();
+                return;
+            }
+
+#if HAS_FIREBASE_SDK
             RunAsync(current).Forget();
+#endif
         }
 
+#if HAS_FIREBASE_SDK
         private static async UniTaskVoid RunAsync(Attempt attempt) {
             await FirebaseInit.WaitUntilCompleteAsync();
             attempt.Result.TrySetResult(await AttemptAsync());
@@ -89,7 +110,7 @@ namespace RiseOn.Firebase.RemoteConfig {
                 var reason = fetching ? config.Info.LastFetchFailureReason : FetchFailureReason.Error;
                 var cause  = $"{reason}{(string.IsNullOrEmpty(e.Message) ? "" : ": " + e.Message)}";
                 Debug.LogError($"{nameof(RemoteConfigInit)}: loading failed ({cause}); waiting for a retry or continue");
-                return new RemoteConfigInitFailed(e, reason, RetryAsync, () => ContinueAsync(config));
+                return new RemoteConfigInitFailed(e, reason is FetchFailureReason.Throttled, RetryAsync, () => ContinueAsync(config));
             }
 
             await UniTask.SwitchToMainThread();
@@ -191,6 +212,7 @@ namespace RiseOn.Firebase.RemoteConfig {
         private static TimeSpan FetchInterval(FirebaseRemoteConfigSettings settings) {
             return TimeSpan.FromMinutes(Debug.isDebugBuild ? settings.DevelopmentMinimumFetchIntervalMinutes : settings.MinimumFetchIntervalMinutes);
         }
+#endif
 
         private sealed class Attempt {
             public readonly UniTaskCompletionSource<RemoteConfigInitResult> Result = new();

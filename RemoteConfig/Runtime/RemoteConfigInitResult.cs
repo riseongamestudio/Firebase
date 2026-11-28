@@ -1,15 +1,19 @@
 ﻿using System;
 using Cysharp.Threading.Tasks;
-using Firebase.RemoteConfig;
 
 namespace RiseOn.Firebase.RemoteConfig {
-    /// <summary>How one launch fetch ended: <see cref="RemoteConfigInitSucceeded"/> or <see cref="RemoteConfigInitFailed"/>.</summary>
+    /// <summary>How one launch fetch ended: <see cref="RemoteConfigInitSucceeded"/>, <see cref="RemoteConfigInitFailed"/> or <see cref="RemoteConfigInitUnsupported"/>.</summary>
     public abstract class RemoteConfigInitResult {
         private protected RemoteConfigInitResult() { }
     }
 
     public sealed class RemoteConfigInitSucceeded : RemoteConfigInitResult {
         internal RemoteConfigInitSucceeded() { }
+    }
+
+    /// <summary>Firebase does not run on this platform (see <see cref="FirebaseInit.IsSupported"/>): nothing was fetched, every value keeps its in-app default.</summary>
+    public sealed class RemoteConfigInitUnsupported : RemoteConfigInitResult {
+        internal RemoteConfigInitUnsupported() { }
     }
 
     /// <summary>
@@ -21,15 +25,15 @@ namespace RiseOn.Firebase.RemoteConfig {
         private readonly Func<UniTask>                         proceed;
         private          bool                                  resolved;
 
-        /// <summary>What the SDK threw; a failed fetch throws a FirebaseException without a message, see <see cref="Reason"/>.</summary>
+        /// <summary>What the SDK threw; a failed fetch throws a FirebaseException without a message, and the error <see cref="RemoteConfigInit"/> logs names the SDK's reason.</summary>
         public Exception Error { get; }
 
-        /// <summary>The SDK's reason when the fetch failed, <see cref="FetchFailureReason.Throttled"/> when fetches came too often; <see cref="FetchFailureReason.Error"/> for a failure that is no fetch (the defaults, the settings, the activation).</summary>
-        public FetchFailureReason Reason { get; }
+        /// <summary>Firebase refused the fetch because fetches came too often: a retry is refused too, until the interval passes.</summary>
+        public bool Throttled { get; }
 
-        internal RemoteConfigInitFailed(Exception error, FetchFailureReason reason, Func<UniTask<RemoteConfigInitResult>> retry, Func<UniTask> proceed) {
+        internal RemoteConfigInitFailed(Exception error, bool throttled, Func<UniTask<RemoteConfigInitResult>> retry, Func<UniTask> proceed) {
             Error        = error;
-            Reason       = reason;
+            Throttled    = throttled;
             this.retry   = retry;
             this.proceed = proceed;
         }

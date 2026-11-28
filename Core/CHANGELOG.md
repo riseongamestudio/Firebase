@@ -4,6 +4,27 @@ Mọi thay đổi đáng kể của `com.riseon.firebase` được ghi ở đây
 [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), đánh số theo
 [Semantic Versioning](https://semver.org/lang/vi/).
 
+## [2.0.0] - 2026-11-28
+
+### Thêm
+
+- WebGL và bản build desktop: game build được mà không phải gỡ pack. Lúc build, pack ghi
+  một cảnh báo thay vì dừng build; lúc chạy `FirebaseInit` ghi một lỗi rồi hoàn thành ngay,
+  `PopResultAsync()` trả `FirebaseInitUnsupported`. Xem mục Nền tảng khác của README.
+- `FirebaseInit.IsSupported`: Firebase có chạy trên nền tảng này không.
+
+### Đổi
+
+- `WaitUntilCompleteAsync()` trả `UniTask`, không còn trả `FirebaseApp`: API của pack
+  không dùng kiểu của SDK Firebase, nên code game gọi pack compile được cả trên WebGL,
+  nơi không có SDK đó. Trên Android, iOS, cần app thì dùng `FirebaseApp.DefaultInstance`
+  sau khi chờ.
+
+### Bỏ
+
+- `FirebaseInitException.Status`. Message của lỗi vẫn ghi kết quả kiểm tra Google Play
+  services.
+
 ## [1.0.4] - 2026-11-27
 
 ### Đổi

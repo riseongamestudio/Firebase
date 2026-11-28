@@ -28,7 +28,7 @@ Package `com.riseon.firebase.remoteconfig`, namespace `RiseOn.Firebase.RemoteCon
 |---|---|---|
 | Unity 6000.3 | | Bản đang dùng để phát triển |
 | [Odin Inspector](https://odininspector.com) | Cài tay từ Asset Store | Các mục của trang cài đặt |
-| `com.riseon.firebase` 1.0.3 | Tự cài theo `package.json` | Khởi động Firebase, project trong file cấu hình |
+| `com.riseon.firebase` 2.0.0 | Tự cài theo `package.json` | Khởi động Firebase, project trong file cấu hình |
 | `com.riseon.utils` 2.0.0 | Tự cài theo `package.json` | Các mục của trang cài đặt |
 | `com.google.firebase.remote-config` 13.17.0 | Tự cài theo `package.json`, từ registry RiseOn | Firebase Remote Config SDK |
 | `com.cysharp.unitask` 2.5.11 | Tự cài theo `package.json`, từ OpenUPM | Các hàm `async` |
@@ -219,13 +219,12 @@ quyết định, kể cả khi máy đã có giá trị fetch từ lần mở tr
 Đúng một chỗ trong game (thường là màn boot) nhận kết quả và quyết định:
 
 ```csharp
-using Firebase.RemoteConfig;          // FetchFailureReason của SDK
 using RiseOn.Firebase.RemoteConfig;
 
 var result = await RemoteConfigInit.PopResultAsync();
 while (result is RemoteConfigInitFailed failed) {
     // Fetch quá dày thì thử lại cũng bị từ chối: đi tiếp với giá trị đang có.
-    if (failed.Reason is FetchFailureReason.Throttled || !await noConnectionPopup.AskRetryAsync()) {
+    if (failed.Throttled || !await noConnectionPopup.AskRetryAsync()) {
         await failed.ContinueAsync();
         break;
     }
@@ -236,9 +235,9 @@ while (result is RemoteConfigInitFailed failed) {
 
 | API | Ý nghĩa |
 |---|---|
-| `PopResultAsync()` | Kết quả của lần chạy hiện tại: `RemoteConfigInitSucceeded` hoặc `RemoteConfigInitFailed`. Mỗi lần chạy chỉ lấy ra được một lần; gọi lần thứ hai thì ném `InvalidOperationException` |
-| `RemoteConfigInitFailed.Reason` | `FetchFailureReason` của SDK (namespace `Firebase.RemoteConfig`). Fetch lỗi thì là lý do SDK ghi cho lần fetch đó, `Throttled` khi fetch quá dày. Lỗi không phải fetch (đặt giá trị mặc định, cài đặt fetch, activate) thì là `FetchFailureReason.Error`; lỗi thật nằm ở `RemoteConfigInitFailed.Error` |
-| `RemoteConfigInitFailed.Error` | Exception của SDK; fetch lỗi ném `FirebaseException` không có message, lý do nằm ở `Reason` |
+| `PopResultAsync()` | Kết quả của lần chạy hiện tại: `RemoteConfigInitSucceeded`, `RemoteConfigInitFailed`, hoặc `RemoteConfigInitUnsupported` nơi Firebase không chạy (xem [Nền tảng khác](../Core/README.md#nền-tảng-khác)): mọi giá trị giữ mặc định trong app. Mỗi lần chạy chỉ lấy ra được một lần; gọi lần thứ hai thì ném `InvalidOperationException` |
+| `RemoteConfigInitFailed.Throttled` | `true` khi Firebase từ chối fetch vì fetch quá dày: thử lại cũng bị từ chối tới khi hết khoảng chờ. Lỗi khác, kể cả lỗi không phải fetch, là `false` |
+| `RemoteConfigInitFailed.Error` | Exception của SDK; fetch lỗi ném `FirebaseException` không có message, lý do SDK ghi cho lần fetch đó nằm trong log lỗi của `RemoteConfigInit` |
 | `RemoteConfigInitFailed.RetryAsync()` | Fetch lại, trả kết quả mới cho chính bên gọi |
 | `RemoteConfigInitFailed.ContinueAsync()` | Xong luồng với giá trị máy đã fetch được, key nào chưa có thì lấy giá trị mặc định trong app; lần mở sau fetch lại |
 

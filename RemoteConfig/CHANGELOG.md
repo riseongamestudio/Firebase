@@ -4,6 +4,20 @@ Mọi thay đổi đáng kể của `com.riseon.firebase.remoteconfig` được 
 [Keep a Changelog](https://keepachangelog.com/vi/1.1.0/), đánh số theo
 [Semantic Versioning](https://semver.org/lang/vi/).
 
+## [3.0.0] - 2026-11-28
+
+### Thêm
+
+- WebGL và bản build desktop: `RemoteConfigInit` hoàn thành ngay, mọi giá trị giữ mặc
+  định trong app, `PopResultAsync()` trả `RemoteConfigInitUnsupported`.
+
+### Đổi
+
+- `RemoteConfigInitFailed.Reason` (kiểu `FetchFailureReason` của SDK) thay bằng
+  `RemoteConfigInitFailed.Throttled`: code game xử lý lỗi fetch không phải dùng kiểu của
+  SDK, nên compile được cả trên WebGL. Lý do SDK ghi vẫn có trong log lỗi.
+- Phụ thuộc `com.riseon.firebase` 2.0.0.
+
 ## [2.0.1] - 2026-11-26
 
 ### Đổi

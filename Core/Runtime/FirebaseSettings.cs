@@ -1,8 +1,17 @@
-﻿using Firebase;
-using Sirenix.OdinInspector;
+﻿using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace RiseOn.Firebase {
+    // Firebase's own LogLevel, which a WebGL player lacks: the asset keeps one layout on every platform. FirebaseInit maps it by name.
+    internal enum FirebaseLogLevel {
+        Verbose
+      , Debug
+      , Info
+      , Warning
+      , Error
+      , Assert
+    }
+
     internal enum AppCheckIOSProvider {
         AppAttest
       , DeviceCheck
@@ -16,7 +25,7 @@ namespace RiseOn.Firebase {
 
         [SerializeField]
         [Tooltip("How much the Firebase SDK logs. Info is the SDK's own default.")]
-        private LogLevel logLevel = LogLevel.Info;
+        private FirebaseLogLevel logLevel = FirebaseLogLevel.Info;
 
         [SerializeField]
         [Tooltip("Attest the app with App Check (needs the com.google.firebase.app-check package). Enforce it in the Firebase console only once the builds that send tokens are out.")]
@@ -30,7 +39,7 @@ namespace RiseOn.Firebase {
         [Tooltip("Development builds use the debug provider: each device logs a debug token to register in the Firebase console. The Editor always uses it.")]
         private bool appCheckDebugInDevelopmentBuilds = true;
 
-        public LogLevel LogLevel => logLevel;
+        public FirebaseLogLevel LogLevel => logLevel;
         public bool AppCheck => appCheck;
         public AppCheckIOSProvider AppCheckIOSProvider => appCheckIOSProvider;
         public bool AppCheckDebugInDevelopmentBuilds => appCheckDebugInDevelopmentBuilds;
